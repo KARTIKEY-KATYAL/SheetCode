@@ -9,6 +9,7 @@ const port = process.env.PORT || 8000
 
 app.use(express.json())
 app.use(CookieParser())
+app.use(express.urlencoded())
 
 app.get('/',(req,res)=>{
     res.send("ok!")
