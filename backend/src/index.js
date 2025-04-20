@@ -16,7 +16,9 @@ app.get('/',(req,res)=>{
 
 
 import authRoutes from "./routes/auth.routes.js"
+import health from "./routes/health.routes.js"
 
+app.use("/api/v1/health",health)
 app.use("/api/v1/auth",authRoutes)
 
 app.listen(port,()=>{
