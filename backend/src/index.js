@@ -1,6 +1,6 @@
 import express from "express"
 import dotenv from "dotenv"
-import CookieParser from "cookieparser"
+import CookieParser from "cookie-parser"
 dotenv.config()
 
 const app = express()
@@ -18,10 +18,6 @@ app.get('/',(req,res)=>{
 import authRoutes from "./routes/auth.routes.js"
 
 app.use("/api/v1/auth",authRoutes)
-
-
-
-
 
 app.listen(port,()=>{
     console.log(`Server Started on PORT : ${port}`)
