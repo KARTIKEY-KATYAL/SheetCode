@@ -4,7 +4,7 @@ import jwt from "jsonwebtoken";
 import { db } from "../libs/db.js";
 
 export const isLoggedIn = asyncHandler(async (req, res, next) => {
-  const token = req.cookies.jwt;
+  const token = req.cookies?.jwt;
 
   if (!token) {
     return res.status(401).json(new ApiError(401, "Token not Found"));

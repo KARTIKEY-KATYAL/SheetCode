@@ -49,7 +49,7 @@ export const RegisterUser = asyncHandler(async (req, res) => {
 
    
 
-    return res.status(201).json(new ApiResponse(201, "User Created", user));
+    return res.status(201).json(new ApiResponse(201, "User Created", user.select("-password")));
   } catch (error) {
     console.error("Register error:", error);
     res.status(500).json(new ApiError(500, "Error Creating User"));
