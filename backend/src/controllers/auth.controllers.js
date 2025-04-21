@@ -5,6 +5,8 @@ import { db } from "../libs/db.js";
 import bcrypt from "bcryptjs";
 import { UserRole } from "../generated/prisma/index.js";
 import jwt from "jsonwebtoken";
+import { uploadOnCloudinary } from "../libs/cloudinary.js";
+
 
 export const RegisterUser = asyncHandler(async (req, res) => {
   const { name, email, password } = req.body;
@@ -21,11 +23,15 @@ export const RegisterUser = asyncHandler(async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
+    const avatarLocalPath = req.files?.avatar[0]?.path;
+    const avatar = await uploadOnCloudinary(avatarLocalPath);
+
     const user = await db.user.create({
       data: {
         name,
         email,
         password: hashedPassword,
+        image: avatar?.url ,
         role: UserRole.USER,
       },
     });
