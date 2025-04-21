@@ -24,7 +24,7 @@ export const RegisterUser = asyncHandler(async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const avatarLocalPath = req.files?.avatar[0]?.path;
-    const avatar = await uploadOnCloudinary(avatarLocalPath);
+    const avatar = await uploadOnCloudinary(avatarLocalPath,"avatar");
 
     const user = await db.user.create({
       data: {
@@ -49,7 +49,7 @@ export const RegisterUser = asyncHandler(async (req, res) => {
 
    
 
-    return res.status(201).json(new ApiResponse(201, "User Created", user.select("-password")));
+    return res.status(201).json(new ApiResponse(201, "User Created", user));
   } catch (error) {
     console.error("Register error:", error);
     res.status(500).json(new ApiError(500, "Error Creating User"));

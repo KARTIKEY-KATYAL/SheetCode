@@ -19,7 +19,7 @@ const uploadOnCloudinary = async (localFilePath, folder) => {
     // upload file on cloudinary
     const response = await cloudinary.uploader.upload(localFilePath, {
       resource_type: "auto",
-      folder: `Project_Camp/${folder}`,
+      folder: `Hacker_Hunt/${folder}`,
     });
     // File has been uploaded succesfully
     console.log("File is uploaded on cloudinary", response.url);
