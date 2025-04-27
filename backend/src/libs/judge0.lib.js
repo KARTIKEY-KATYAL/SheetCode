@@ -1,3 +1,5 @@
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
 export const getJudge0languageId = (language) => {
   const languageMap = {
     CPP: 54,
@@ -21,7 +23,6 @@ export const submitBatch = async (submissions) => {
   return data;
 };
 
-const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 export const poolbatchResults = async (tokens) => {
   while (true) {
@@ -42,6 +43,6 @@ export const poolbatchResults = async (tokens) => {
     });
     if (isAllDone) return results;
 
-    await sleep(1000)
+    await sleep(1000);
   }
 };
