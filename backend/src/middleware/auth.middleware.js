@@ -37,3 +37,12 @@ export const isLoggedIn = asyncHandler(async (req, res, next) => {
 
   next();
 });
+
+
+export const isAdmin = asyncHandler(async (req, res, next) => {
+  if (!req.user || req.user.role !== "ADMIN") {
+    return res.status(403).json(new ApiError(403, "Access Denied"));
+  }
+
+  next();
+});

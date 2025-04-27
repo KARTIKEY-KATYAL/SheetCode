@@ -9,7 +9,7 @@ import { uploadOnCloudinary } from "../libs/cloudinary.js";
 
 
 export const RegisterUser = asyncHandler(async (req, res) => {
-  const { name, email, password } = req.body;
+  const { name, email, password ,image } = req.body;
 
   if (!name || !email || !password) {
     return res.status(400).json(new ApiError(400, "Missing Credentials"));
@@ -49,7 +49,7 @@ export const RegisterUser = asyncHandler(async (req, res) => {
 
    
 
-    return res.status(201).json(new ApiResponse(201, "User Created", user));
+    return res.status(201).json(new ApiResponse(201, user , "User Created"));
   } catch (error) {
     console.error("Register error:", error);
     res.status(500).json(new ApiError(500, "Error Creating User"));
@@ -111,9 +111,7 @@ export const LogoutUser = asyncHandler(async (req, res) => {
       );
 });
 export const CheckUser = asyncHandler(async (req, res) => {
-     res.status(200).json({
-       success: true,
-       message: "User authenticated successfully",
-       user: req.user,
-     });
+     res.status(200).json(
+      new ApiResponse(200,req.user,"User Found"),
+     );
 });
