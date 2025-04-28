@@ -2,7 +2,11 @@ import { asyncHandler } from '../libs/async-handler.js';
 import { ApiResponse } from '../libs/api-response.js';
 import { ApiError } from '../libs/api-error.js';
 import { db } from '../libs/db.js';
-import { getJudge0languageId, submitBatch ,poolbatchResults } from '../libs/judge0.lib.js';
+import {
+  getJudge0languageId,
+  submitBatch,
+  poolbatchResults,
+} from '../libs/judge0.lib.js';
 
 export const createProblem = asyncHandler(async (req, res) => {
   // going to get all data from request body
@@ -22,6 +26,7 @@ export const createProblem = asyncHandler(async (req, res) => {
     codeSnippets,
     referenceSolutions,
   } = req.body;
+
   if (!req.user || req.user.role !== 'ADMIN') {
     return res
       .status(403)
@@ -94,33 +99,60 @@ export const createProblem = asyncHandler(async (req, res) => {
 });
 
 export const getallProblems = asyncHandler(async (req, res) => {
-    const problems = await db.problem.findMany()
-    if (problems){
-        res.status(404).json(new ApiError(404,"No Problem Found"))
-    }
-    res.status(200).json(new ApiResponse(200,problems,"Problems fetched Successsfully"))
+  const problems = await db.problem.findMany();
+
+  if (!problems) {
+    return res.status(404).json({
+      error: 'No problems Found',
+    });
+  }
+  res
+    .status(200)
+    .json(new ApiResponse(200, problems, 'Problems fetched Successsfully'));
 });
 export const getallProblembyId = asyncHandler(async (req, res) => {
-    const {id} = req.params
+  const { id } = req.params;
 
-    try {
-        const problems  = await db.problem.findUnique({
-            where: {
-                id
-            }
-        })
-            if (problems) {
-              res.status(404).json(new ApiError(404, 'No Problem Found'));
-            }
+  try {
+    const problem = await db.problem.findUnique({
+      where: {
+        id,
+      },
+    });
 
-            res.status(200).json(new ApiResponse(200,problems,"Problem Fetched"))
-    } catch (error) {
+    if (!problem) {
+      return res.status(404).json({ error: 'Problem not found.' });
     }
-});
-export const UpdateProblembyId = asyncHandler(async (req, res) => {});
-export const DeletebyId = asyncHandler(async (req, res) => {
-    const {id} = req.params
 
-    
+    res.status(200).json(new ApiResponse(200, problem, 'Problem Fetched'));
+  } catch (error) {
+    console.log(error);
+    return res
+      .status(500)
+      .json(new ApiError(500, 'Error While Fetching Problem by id'));
+  }
+});
+export const UpdateProblembyId = asyncHandler(async (req, res) => {
+ 
+});
+export const DeletebyId = asyncHandler(async (req, res) => {
+   const { id } = req.params;
+
+   try {
+     const problem = await db.problem.findUnique({ where: { id } });
+
+     if (!problem) {
+       return res.status(404).json({ error: 'Problem Not found' });
+     }
+
+     await db.problem.delete({ where: { id } });
+
+     res.status(200).json(new ApiResponse(200, 'Problem deleted Successfully'));
+   } catch (error) {
+     console.log(error);
+     return res
+       .status(500)
+       .json(new ApiError(500, 'Error While deleting the problem'));
+   }
 });
 export const getSolvedProblems = asyncHandler(async (req, res) => {});
