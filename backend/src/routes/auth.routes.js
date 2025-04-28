@@ -1,22 +1,27 @@
-import express from "express"
-import { isLoggedIn } from "../middleware/auth.middleware.js"
-import { upload } from "../middleware/multer.middleware.js"
-import { RegisterUser,LoginUser,LogoutUser,CheckUser } from "../controllers/auth.controllers.js"
+import express from 'express';
+import { isLoggedIn } from '../middleware/auth.middleware.js';
+import { upload } from '../middleware/multer.middleware.js';
+import {
+  RegisterUser,
+  LoginUser,
+  LogoutUser,
+  CheckUser,
+} from '../controllers/auth.controllers.js';
 
-const authRoutes = express.Router()
+const authRoutes = express.Router();
 
 authRoutes.post(
-  "/register",
+  '/register',
   upload.fields([
     {
-      name: "avatar",
+      name: 'avatar',
       maxCount: 1,
     },
   ]),
-  RegisterUser
+  RegisterUser,
 );
-authRoutes.post("/login",LoginUser)
-authRoutes.get("/logout",isLoggedIn,LogoutUser)
-authRoutes.get("/check",isLoggedIn,CheckUser)
+authRoutes.post('/login', LoginUser);
+authRoutes.get('/logout', isLoggedIn, LogoutUser);
+authRoutes.get('/check', isLoggedIn, CheckUser);
 
-export default authRoutes
+export default authRoutes;

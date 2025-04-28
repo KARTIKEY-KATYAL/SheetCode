@@ -1,3 +1,4 @@
+import axios from 'axios';
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 export const getJudge0languageId = (language) => {
@@ -7,7 +8,7 @@ export const getJudge0languageId = (language) => {
     JAVA: 62,
     JAVASCRIPT: 63,
   };
-  return languageMap[language].toUpperCase() || null;
+  return languageMap[language] || null;
 };
 
 export const submitBatch = async (submissions) => {
@@ -43,6 +44,6 @@ export const poolbatchResults = async (tokens) => {
     });
     if (isAllDone) return results;
 
-    await sleep(1000);
+    await sleep(2000);
   }
 };

@@ -1,9 +1,9 @@
-import { v2 as cloudinary } from "cloudinary";
-import fs from "fs";
+import { v2 as cloudinary } from 'cloudinary';
+import fs from 'fs';
 
 // Sometimes when third party is involved , they are not automatically imported and process.env does not work
 // Hence we import them explicitly in this file
-import dotenv from "dotenv";
+import dotenv from 'dotenv';
 dotenv.config();
 
 cloudinary.config({
@@ -18,11 +18,11 @@ const uploadOnCloudinary = async (localFilePath, folder) => {
     if (!localFilePath) return null;
     // upload file on cloudinary
     const response = await cloudinary.uploader.upload(localFilePath, {
-      resource_type: "auto",
+      resource_type: 'auto',
       folder: `Hacker_Hunt/${folder}`,
     });
     // File has been uploaded succesfully
-    console.log("File is uploaded on cloudinary", response.url);
+    console.log('File is uploaded on cloudinary', response.url);
     fs.unlinkSync(localFilePath);
     return response;
   } catch (error) {
@@ -37,11 +37,11 @@ const deleteOnCloudinary = async (url, folder) => {
     if (!url) return null;
     // Getting public key from URL
     console.log(url);
-    const urlArray = url.split("/");
+    const urlArray = url.split('/');
     console.log(urlArray);
     const image = urlArray[urlArray.length - 1];
     console.log(image);
-    const imagePublicId = `Project_Camp/${folder}/${image.split(".")[0]}`;
+    const imagePublicId = `Project_Camp/${folder}/${image.split('.')[0]}`;
     console.log(imagePublicId);
     const response = await cloudinary.uploader.destroy(imagePublicId);
     console.log(response); // If file not found then response.result = not found & if file is deleted response.result = ok
