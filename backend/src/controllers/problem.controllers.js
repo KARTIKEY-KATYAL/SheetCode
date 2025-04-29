@@ -110,6 +110,7 @@ export const getallProblems = asyncHandler(async (req, res) => {
     .status(200)
     .json(new ApiResponse(200, problems, 'Problems fetched Successsfully'));
 });
+
 export const getallProblembyId = asyncHandler(async (req, res) => {
   const { id } = req.params;
 
@@ -132,21 +133,16 @@ export const getallProblembyId = asyncHandler(async (req, res) => {
       .json(new ApiError(500, 'Error While Fetching Problem by id'));
   }
 });
+
 export const UpdateProblembyId = asyncHandler(async (req, res) => {
   const { id } = req.params;
-  const {
-    title,
-    description,
-    difficulty,
-    tags,
-    examples,
-    constraints,
-    hints,
-    editorial,
-    testcases,
-    codeSnippets,
-    referenceSolutions,
-  } = req.body;
+
+  // Authorization check
+  if (!req.user || req.user.role !== 'ADMIN') {
+    return res
+      .status(403)
+      .json(new ApiError(403, 'Not Allowed to Update Problem'));
+  }
 
   try {
     // Check if problem exists
@@ -158,22 +154,121 @@ export const UpdateProblembyId = asyncHandler(async (req, res) => {
       return res.status(404).json(new ApiError(404, 'Problem not found'));
     }
 
-    // Update the problem
+    const {
+      title,
+      description,
+      difficulty,
+      tags,
+      examples,
+      constraints,
+      hints,
+      editorial,
+      testcases,
+      codeSnippets,
+      referenceSolutions,
+    } = req.body;
+
+    // Validate required fields
+    if (!title || !description || !difficulty) {
+      return res
+        .status(400)
+        .json(
+          new ApiError(400, 'Title, description and difficulty are required'),
+        );
+    }
+
+    // Only validate reference solutions if they're being updated
+    if (referenceSolutions && referenceSolutions.length > 0) {
+      // Process all solutions before updating
+      const validationResults = [];
+
+      for (const { language, codeSolution } of referenceSolutions) {
+        // Check if the language is supported by Judge0
+        const languageId = getJudge0languageId(language);
+        if (!languageId) {
+          return res
+            .status(400)
+            .json(new ApiError(400, `${language} is not supported`));
+        }
+
+        // Validate testcases are present
+        if (!testcases || !testcases.length) {
+          return res
+            .status(400)
+            .json(
+              new ApiError(
+                400,
+                'Testcases are required when updating reference solutions',
+              ),
+            );
+        }
+
+        // Create the submission to be sent to judge0
+        const submission = testcases.map(({ input, output }) => ({
+          source_code: codeSolution,
+          language_id: languageId,
+          stdin: input,
+          expected_output: output,
+        }));
+
+        try {
+          // Submit the batch to judge0
+          const submissionResult = await submitBatch(submission);
+
+          // Create an array of tokens from the submission result
+          const tokens = submissionResult.map((res) => res.token);
+
+          // Check the status of each submission
+          const results = await poolbatchResults(tokens);
+
+          // Check if all results are successful
+          for (let i = 0; i < results.length; i++) {
+            const result = results[i];
+            if (result.status.id !== 3) {
+              return res
+                .status(400)
+                .json(
+                  new ApiError(
+                    400,
+                    `Test case ${i + 1} failed for ${language}`,
+                  ),
+                );
+            }
+          }
+
+          validationResults.push({ language, status: 'passed' });
+        } catch (error) {
+          console.error(`Error validating ${language} solution:`, error);
+          return res
+            .status(500)
+            .json(new ApiError(500, `Error validating ${language} solution`));
+        }
+      }
+
+      console.log(
+        'All reference solutions validated successfully:',
+        validationResults,
+      );
+    }
+
+    // Create update object with only provided fields
+    const updateData = {};
+    if (title) updateData.title = title;
+    if (description) updateData.description = description;
+    if (difficulty) updateData.difficulty = difficulty;
+    if (tags) updateData.tags = tags;
+    if (examples) updateData.examples = examples;
+    if (constraints) updateData.constraints = constraints;
+    if (hints) updateData.hints = hints;
+    if (editorial) updateData.editorial = editorial;
+    if (testcases) updateData.testcases = testcases;
+    if (codeSnippets) updateData.codeSnippets = codeSnippets;
+    if (referenceSolutions) updateData.referenceSolutions = referenceSolutions;
+
+    // Update the problem with only the fields that were provided
     const updatedProblem = await db.problem.update({
       where: { id },
-      data: {
-        title,
-        description,
-        difficulty,
-        tags,
-        examples,
-        constraints,
-        hints,
-        editorial,
-        testcases,
-        codeSnippets,
-        referenceSolutions,
-      },
+      data: updateData,
     });
 
     return res
@@ -182,12 +277,13 @@ export const UpdateProblembyId = asyncHandler(async (req, res) => {
         new ApiResponse(200, updatedProblem, 'Problem updated successfully'),
       );
   } catch (error) {
-    console.log(error);
+    console.error('Error updating problem:', error);
     return res
       .status(500)
       .json(new ApiError(500, 'Error while updating the problem'));
   }
 });
+
 export const DeletebyId = asyncHandler(async (req, res) => {
   const { id } = req.params;
 
@@ -195,7 +291,7 @@ export const DeletebyId = asyncHandler(async (req, res) => {
     const problem = await db.problem.findUnique({ where: { id } });
 
     if (!problem) {
-      return res.status(404).json({ error: 'Problem Not found' });
+      return res.status(404).json(new ApiError(404, 'Problem not found'));
     }
 
     await db.problem.delete({ where: { id } });
@@ -208,6 +304,7 @@ export const DeletebyId = asyncHandler(async (req, res) => {
       .json(new ApiError(500, 'Error While deleting the problem'));
   }
 });
+
 export const getSolvedProblems = asyncHandler(async (req, res) => {
   try {
     // Get the current user ID from the request
@@ -218,12 +315,17 @@ export const getSolvedProblems = asyncHandler(async (req, res) => {
     }
 
     // Find solved problems for the current user
+    // Limit the fields returned for better performance
     const solvedProblems = await db.problemSolved.findMany({
-      where: {
-        userId: userId,
-      },
+      where: { userId },
       include: {
-        problem: true, // Include the full problem details
+        problem: {
+          select: {
+            id: true,
+            title: true,
+            difficulty: true,
+          },
+        },
       },
     });
 
