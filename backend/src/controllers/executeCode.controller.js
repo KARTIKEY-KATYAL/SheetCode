@@ -1,7 +1,7 @@
 import { asyncHandler } from '../libs/async-handler.js';
 import { ApiResponse } from '../libs/api-response.js';
 import { ApiError } from '../libs/api-error.js';
-import { pollBatchResults, submitBatch } from '../libs/judge0.lib.js';
+import { poolbatchResults, submitBatch } from '../libs/judge0.lib.js';
 
 export const executeCode = asyncHandler(async (req, res) => {
   try {
@@ -35,7 +35,7 @@ export const executeCode = asyncHandler(async (req, res) => {
     const tokens = submitResponse.map((res) => res.token);
 
     // Poll judge0 for results of all submitted test cases
-    const results = await pollBatchResults(tokens);
+    const results = await poolbatchResults(tokens);
 
     // Process results to determine if all test cases passed
     const executionResults = results.map((result, index) => {
