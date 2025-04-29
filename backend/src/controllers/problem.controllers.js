@@ -133,26 +133,121 @@ export const getallProblembyId = asyncHandler(async (req, res) => {
   }
 });
 export const UpdateProblembyId = asyncHandler(async (req, res) => {
- 
+  const { id } = req.params;
+  const {
+    title,
+    description,
+    difficulty,
+    tags,
+    examples,
+    constraints,
+    hints,
+    editorial,
+    testcases,
+    codeSnippets,
+    referenceSolutions,
+  } = req.body;
+
+  try {
+    // Check if problem exists
+    const existingProblem = await db.problem.findUnique({
+      where: { id },
+    });
+
+    if (!existingProblem) {
+      return res.status(404).json(new ApiError(404, 'Problem not found'));
+    }
+
+    // Update the problem
+    const updatedProblem = await db.problem.update({
+      where: { id },
+      data: {
+        title,
+        description,
+        difficulty,
+        tags,
+        examples,
+        constraints,
+        hints,
+        editorial,
+        testcases,
+        codeSnippets,
+        referenceSolutions,
+      },
+    });
+
+    return res
+      .status(200)
+      .json(
+        new ApiResponse(200, updatedProblem, 'Problem updated successfully'),
+      );
+  } catch (error) {
+    console.log(error);
+    return res
+      .status(500)
+      .json(new ApiError(500, 'Error while updating the problem'));
+  }
 });
 export const DeletebyId = asyncHandler(async (req, res) => {
-   const { id } = req.params;
+  const { id } = req.params;
 
-   try {
-     const problem = await db.problem.findUnique({ where: { id } });
+  try {
+    const problem = await db.problem.findUnique({ where: { id } });
 
-     if (!problem) {
-       return res.status(404).json({ error: 'Problem Not found' });
-     }
+    if (!problem) {
+      return res.status(404).json({ error: 'Problem Not found' });
+    }
 
-     await db.problem.delete({ where: { id } });
+    await db.problem.delete({ where: { id } });
 
-     res.status(200).json(new ApiResponse(200, 'Problem deleted Successfully'));
-   } catch (error) {
-     console.log(error);
-     return res
-       .status(500)
-       .json(new ApiError(500, 'Error While deleting the problem'));
-   }
+    res.status(200).json(new ApiResponse(200, 'Problem deleted Successfully'));
+  } catch (error) {
+    console.log(error);
+    return res
+      .status(500)
+      .json(new ApiError(500, 'Error While deleting the problem'));
+  }
 });
-export const getSolvedProblems = asyncHandler(async (req, res) => {});
+export const getSolvedProblems = asyncHandler(async (req, res) => {
+  try {
+    // Get the current user ID from the request
+    const userId = req.user.id;
+
+    if (!userId) {
+      return res.status(401).json(new ApiError(401, 'User not authenticated'));
+    }
+
+    // Find solved problems for the current user
+    const solvedProblems = await db.problemSolved.findMany({
+      where: {
+        userId: userId,
+      },
+      include: {
+        problem: true, // Include the full problem details
+      },
+    });
+
+    // If no solved problems, return empty array with appropriate message
+    if (!solvedProblems || solvedProblems.length === 0) {
+      return res
+        .status(200)
+        .json(new ApiResponse(200, [], 'No solved problems found'));
+    }
+
+    // Return the solved problems
+    return res
+      .status(200)
+      .json(
+        new ApiResponse(
+          200,
+          solvedProblems,
+          'Solved problems fetched successfully',
+        ),
+      );
+  } catch (error) {
+    console.log(error);
+    return res
+      .status(500)
+      .json(new ApiError(500, 'Error while fetching solved problems'));
+  }
+});
