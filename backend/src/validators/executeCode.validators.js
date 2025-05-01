@@ -6,7 +6,9 @@ const executeCodeValidator = () => {
       .trim()
       .notEmpty()
       .withMessage('Source code is required'),
-    body('stdin').isArray().withMessage('Test inputs must be an array'),
+    body('stdin')
+      .isArray()
+      .withMessage('Test inputs must be an array'),
     body('problemId')
       .optional()
       .isString()
