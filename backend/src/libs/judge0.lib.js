@@ -24,7 +24,6 @@ export const submitBatch = async (submissions) => {
   return data;
 };
 
-
 export const poolbatchResults = async (tokens) => {
   while (true) {
     const { data } = await axios.get(
