@@ -80,7 +80,10 @@ export const executeCode = asyncHandler(async (req, res) => {
     data: {
       userId,
       problemId,
-      sourceCode: source_code,
+      sourceCode: { 
+        language: getLanguageName(language_id),
+        code: source_code
+      },
       language: getLanguageName(language_id),
       stdin: stdin.join('\n'),
       stdout: JSON.stringify(detailedResults.map((r) => r.stdout)),

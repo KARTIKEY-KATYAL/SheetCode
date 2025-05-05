@@ -20,12 +20,14 @@ import health from './routes/health.routes.js';
 import problemRoutes from './routes/problem.routes.js';
 import executionRoute from './routes/executeCode.routes.js';
 import submissionRoutes from "./routes/submission.routes.js"
+import playlistRoutes from "./routes/playlist.routes.js"
 
 app.use('/api/v1/health', health);
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/problems', problemRoutes);
 app.use('/api/v1/execute-code', executionRoute);
 app.use('/api/v1/submission', submissionRoutes);
+app.use('/api/v1/playlist', playlistRoutes);
 
 app.listen(port, () => {
   console.log(`Server Started on PORT : ${port}`);
