@@ -4,6 +4,7 @@ import './index.css'
 import { createBrowserRouter, createRoutesFromElements, Route, RouterProvider } from 'react-router-dom'
 import Layout from './Layout.tsx'
 import Home from './Home.tsx'
+import { ThemeProvider } from './components/ThemeProvider.tsx'
 
 const router = createBrowserRouter(
   createRoutesFromElements(
@@ -12,9 +13,10 @@ const router = createBrowserRouter(
     </Route>
   )
 )
-
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <RouterProvider router={router}/>
+    <ThemeProvider defaultTheme="light" storageKey="sheetcode-theme">
+      <RouterProvider router={router}/>
+    </ThemeProvider>
   </StrictMode>,
 )
