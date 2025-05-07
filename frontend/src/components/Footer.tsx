@@ -1,34 +1,33 @@
 import React from "react";
 import { Code2, Github, Twitter, Linkedin, Mail } from "lucide-react";
+import Logo from "./Logo";
 
 export function Footer() {
   return (
-    <footer className="bg-white dark:bg-slate-900 pt-12 pb-6 border-t border-slate-200 dark:border-slate-800">
-      <div className="container mx-auto px-4 md:px-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-8">
+    <footer className="bg-white dark:bg-slate-900 py-8 sm:pt-12 sm:pb-6 border-t border-slate-200 dark:border-slate-800">
+      <div className="container mx-auto px-3 sm:px-4 md:px-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8 mb-6 sm:mb-8">
           <div className="lg:col-span-1">
-            <div className="flex gap-1 items-center text-xl font-bold">
-              <Code2 className="h-5 w-5 text-red-500 dark:text-red-700" />
-              <span className="text-red-600 dark:text-red-700">Sheet</span>
-              <span className="text-blue-800 dark:text-blue-600">Code</span>
+            <div className="mb-3 sm:mb-4">
+              <Logo size={18} />
             </div>
-            <p className="text-gray-600 dark:text-slate-400 mb-4 max-w-md text-sm">
+            <p className="text-xs sm:text-sm text-gray-600 dark:text-slate-400 mb-3 sm:mb-4 max-w-md">
               SheetCode provides personalized coding practice to help you
               improve your skills and prepare for technical interviews.
             </p>
-            <div className="flex space-x-3">
-              <SocialLink icon={<Github size={16} />} href="#" />
-              <SocialLink icon={<Twitter size={16} />} href="#" />
-              <SocialLink icon={<Linkedin size={16} />} href="#" />
-              <SocialLink icon={<Mail size={16} />} href="#" />
+            <div className="flex space-x-2 sm:space-x-3">
+              <SocialLink icon={<Github size={14} />} href="#" />
+              <SocialLink icon={<Twitter size={14} />} href="#" />
+              <SocialLink icon={<Linkedin size={14} />} href="#" />
+              <SocialLink icon={<Mail size={14} />} href="#" />
             </div>
           </div>
 
           <div>
-            <h3 className="text-sm font-medium text-gray-900 dark:text-white mb-3">
+            <h3 className="text-xs sm:text-sm font-medium text-gray-900 dark:text-white mb-2 sm:mb-3">
               Resources
             </h3>
-            <ul className="space-y-2">
+            <ul className="space-y-1 sm:space-y-2">
               <FooterLink href="#">Documentation</FooterLink>
               <FooterLink href="#">Guides</FooterLink>
               <FooterLink href="#">API Reference</FooterLink>
@@ -37,10 +36,10 @@ export function Footer() {
           </div>
 
           <div>
-            <h3 className="text-sm font-medium text-gray-900 dark:text-white mb-3">
+            <h3 className="text-xs sm:text-sm font-medium text-gray-900 dark:text-white mb-2 sm:mb-3">
               Company
             </h3>
-            <ul className="space-y-2">
+            <ul className="space-y-1 sm:space-y-2">
               <FooterLink href="#">About Us</FooterLink>
               <FooterLink href="#">Careers</FooterLink>
               <FooterLink href="#">Blog</FooterLink>
@@ -49,10 +48,10 @@ export function Footer() {
           </div>
 
           <div>
-            <h3 className="text-sm font-medium text-gray-900 dark:text-white mb-3">
+            <h3 className="text-xs sm:text-sm font-medium text-gray-900 dark:text-white mb-2 sm:mb-3">
               Legal
             </h3>
-            <ul className="space-y-2">
+            <ul className="space-y-1 sm:space-y-2">
               <FooterLink href="#">Terms</FooterLink>
               <FooterLink href="#">Privacy</FooterLink>
               <FooterLink href="#">Cookies</FooterLink>
@@ -60,9 +59,9 @@ export function Footer() {
             </ul>
           </div>
         </div>
-
-        <div className="border-t border-slate-200 dark:border-slate-800 pt-4 mt-8 text-center">
-          <p className="text-gray-500 dark:text-slate-400 text-xs">
+        
+        <div className="border-t border-slate-200 dark:border-slate-800 pt-3 sm:pt-4 mt-6 sm:mt-8 text-center">
+          <p className="text-xs text-gray-500 dark:text-slate-400">
             © {new Date().getFullYear()} SheetCode. All rights reserved.
           </p>
         </div>
@@ -75,7 +74,7 @@ function SocialLink({ icon, href }: { icon: React.ReactNode; href: string }) {
   return (
     <a
       href={href}
-      className="p-2 bg-gray-100 dark:bg-slate-800 rounded-full text-gray-600 dark:text-slate-400 hover:text-white hover:bg-primary transition-colors"
+      className="p-1.5 sm:p-2 bg-gray-100 dark:bg-slate-800 rounded-full text-gray-600 dark:text-slate-400 hover:text-white hover:bg-primary transition-colors"
     >
       {icon}
     </a>
@@ -91,9 +90,9 @@ function FooterLink({
 }) {
   return (
     <li>
-      <a
-        href={href}
-        className="text-gray-600 dark:text-slate-400 text-sm hover:text-primary dark:hover:text-primary transition-colors"
+      <a 
+        href={href} 
+        className="text-xs sm:text-sm text-gray-600 dark:text-slate-400 hover:text-primary dark:hover:text-primary transition-colors"
       >
         {children}
       </a>
