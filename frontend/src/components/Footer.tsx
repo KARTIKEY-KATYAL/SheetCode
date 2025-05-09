@@ -9,7 +9,7 @@ export function Footer() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8 mb-6 sm:mb-8">
           <div className="lg:col-span-1">
             <div className="mb-3 sm:mb-4">
-              <Logo size={18} />
+              <Logo size={15} />
             </div>
             <p className="text-xs sm:text-sm text-gray-600 dark:text-slate-400 mb-3 sm:mb-4 max-w-md">
               SheetCode provides personalized coding practice to help you

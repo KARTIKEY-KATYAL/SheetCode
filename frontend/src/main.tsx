@@ -5,11 +5,15 @@ import { createBrowserRouter, createRoutesFromElements, Route, RouterProvider } 
 import Layout from './Layout.tsx'
 import Home from './Home.tsx'
 import { ThemeProvider } from './components/ThemeProvider.tsx'
+import SignUp from './components/SignUp.tsx'
+import LogIn from './components/LogIn.tsx'
 
 const router = createBrowserRouter(
   createRoutesFromElements(
     <Route path='/' element={<Layout/>}>
       <Route path='' element={<Home/>}/>
+      <Route path='signup' element ={<SignUp/>}/>
+      <Route path='login' element = {<LogIn/>}/>
     </Route>
   )
 )

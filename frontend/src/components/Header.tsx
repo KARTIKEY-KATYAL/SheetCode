@@ -3,6 +3,7 @@ import { Code2, Menu, X } from 'lucide-react';
 import { ToggleLeft } from "./ToggleLeft";
 import { useTheme } from "./ThemeProvider";
 import { Button } from './ui/button';
+import { Link } from 'react-router-dom';
 
 type Props = {};
 
@@ -30,18 +31,20 @@ const Header = (props: Props) => {
 
   return (
     <header
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 min-h-[5vh] flex items-center ${
+      className={`fixed top-0 left-0 right-0 z-50 transition-all shadow-lg duration-300 min-h-[5vh] flex items-center ${
         isScrolled
           ? 'bg-slate-50 dark:bg-slate-900/95 backdrop-blur-sm shadow-md'
           : 'bg-white dark:bg-slate-900'
       }`}
     >
       <div className="container mx-auto px-3 md:px-6 py-2 flex items-center justify-between">
+      <Link to='/'>
         <div className="flex gap-1 items-center text-base sm:text-xl font-bold">
           <Code2 className="h-4 w-4 sm:h-5 sm:w-5 text-red-500 dark:text-red-700" />
           <span className="text-red-600 dark:text-red-700">Sheet</span>
           <span className="text-blue-800 dark:text-blue-600">Code</span>
         </div>
+        </Link>
 
         {/* Desktop Navigation */}
         <nav className="hidden md:flex items-center space-x-4 lg:space-x-6">
@@ -57,10 +60,14 @@ const Header = (props: Props) => {
           </div>
           <div className='flex gap-1 lg:gap-2'>
             <Button size="sm" className="text-xs sm:text-sm cursor-pointer font-bold bg-blue-700 text-white hover:text-white hover:bg-blue-800">
+            <Link to="/login">
               Log In
+            </Link>
             </Button>
             <Button size="sm" className="text-xs sm:text-sm cursor-pointer font-bold bg-red-700 text-white hover:text-white hover:bg-red-800">
+            <Link to="/signup">
               Sign Up
+            </Link>
             </Button>
           </div>
         </div>
