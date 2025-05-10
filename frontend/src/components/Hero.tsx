@@ -25,17 +25,17 @@ function Hero({}: Props) {
             </p>
             
             <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center lg:justify-start">
-              <button className="px-4 sm:px-6 py-2 sm:py-3 bg-primary hover:bg-primary/90 text-primary-foreground text-sm sm:text-base font-semibold rounded-lg shadow-md inline-flex items-center justify-center transition-all">
+              <button className="px-4 sm:px-6 py-2 sm:py-3 bg-red-600 text-white cursor-pointer text-sm sm:text-base font-semibold rounded-lg shadow-md inline-flex items-center justify-center transition-all">
                 Get Started <ArrowRight className="ml-2 h-4 w-4" />
               </button>
-              <button className="px-4 sm:px-6 py-2 sm:py-3 bg-white/80 dark:bg-slate-800/60 hover:bg-white dark:hover:bg-slate-800 text-gray-800 dark:text-white text-sm sm:text-base font-semibold rounded-lg shadow-md transition-all">
+              <button className="px-4 sm:px-6 py-2 sm:py-3 bg-white/80 dark:bg-slate-800 hover:bg-white cursor-pointer dark:hover:bg-slate-800 text-gray-800 dark:text-white text-sm sm:text-base font-semibold rounded-lg shadow-md transition-all">
                 Learn More
               </button>
             </div>
           </div>
           
           {/* Right Column - Feature Cards */}
-          <div className="grid grid-cols-1 gap-3 sm:gap-4">
+          <div className="grid grid-cols-1 gap-3 sm:gap-4 cursor-pointer">
             <div className="bg-white/80 dark:bg-slate-800/50 p-4 sm:p-6 rounded-xl shadow-md border border-white/40 dark:border-slate-700/50 transform hover:-translate-y-1 transition-all">
               <h3 className="font-bold text-base sm:text-lg mb-1 sm:mb-2 text-primary dark:text-sky-400">1000+ Coding Problems</h3>
               <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">Access a vast library of coding challenges across different difficulty levels and domains.</p>
