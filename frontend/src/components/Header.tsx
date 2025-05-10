@@ -4,6 +4,7 @@ import { ToggleLeft } from "./ToggleLeft";
 import { useTheme } from "./ThemeProvider";
 import { Button } from './ui/button';
 import { Link } from 'react-router-dom';
+import Logo from './Logo';
 
 type Props = {};
 
@@ -39,11 +40,7 @@ const Header = (props: Props) => {
     >
       <div className="container mx-auto px-3 md:px-6 py-2 flex items-center justify-between">
       <Link to='/'>
-      <div className="flex gap-1 items-center text-base sm:text-xl font-bold">
-        <Code2 className="h-4 w-4 sm:h-5 sm:w-5 text-red-500 dark:text-red-700" />
-        <span className="text-red-600 dark:text-red-700">Sheet</span>
-        <span className="text-blue-800 dark:text-blue-600">Code</span>
-      </div>
+      <Logo size={8}/>
       </Link>
 
       {/* Desktop Navigation */}

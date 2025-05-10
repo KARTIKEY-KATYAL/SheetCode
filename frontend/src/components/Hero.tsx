@@ -26,7 +26,7 @@ function Hero({}: Props) {
             
             <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center lg:justify-start">
               <button className="px-4 sm:px-6 py-2 sm:py-3 bg-red-600 text-white cursor-pointer text-sm sm:text-base font-semibold rounded-lg shadow-md inline-flex items-center justify-center transition-all">
-                Get Started <ArrowRight className="ml-2 h-4 w-4" />
+                Get Started <ArrowRight className="ml-2 h-4 w-4 font-bold" />
               </button>
               <button className="px-4 sm:px-6 py-2 sm:py-3 bg-white/80 dark:bg-slate-800 hover:bg-white cursor-pointer dark:hover:bg-slate-800 text-gray-800 dark:text-white text-sm sm:text-base font-semibold rounded-lg shadow-md transition-all">
                 Learn More

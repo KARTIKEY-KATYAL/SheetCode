@@ -9,26 +9,24 @@ import {
   removeProblemFromPlaylist,
 } from '../controllers/playlist.controller.js';
 
-const playlistRoutes = express.Router();
+const router = express.Router();
 
-playlistRoutes.get('/', isLoggedIn, getAllListDetails);
+// Get all playlists for the logged-in user
+router.get('/', isLoggedIn, getAllListDetails);
 
-playlistRoutes.get('/:playlistId', isLoggedIn, getPlayListDetails);
+// Get a single playlist by ID
+router.get('/:playlistId', isLoggedIn, getPlayListDetails);
 
-playlistRoutes.post('/create-playlist', isLoggedIn, createPlaylist);
+// Create a new playlist
+router.post('/', isLoggedIn, createPlaylist);
 
-playlistRoutes.post(
-  '/:playlistId/add-problem',
-  isLoggedIn,
-  addProblemToPlaylist,
-);
+// Add problems to a playlist
+router.post('/:playlistId/problems', isLoggedIn, addProblemToPlaylist);
 
-playlistRoutes.delete('/:playlistId', isLoggedIn, deletePlaylist);
+// Remove problems from a playlist
+router.delete('/:playlistId/problems', isLoggedIn, removeProblemFromPlaylist);
 
-playlistRoutes.delete(
-  '/:playlistId/remove-problem',
-  isLoggedIn,
-  removeProblemFromPlaylist,
-);
+// Delete a playlist
+router.delete('/:playlistId', isLoggedIn, deletePlaylist);
 
-export default playlistRoutes;
+export default router;

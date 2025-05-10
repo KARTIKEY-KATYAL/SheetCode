@@ -1,161 +1,165 @@
+import { asyncHandler } from "../libs/async-handler.js";
+import { ApiResponse } from "../libs/api-response.js";
+import { ApiError } from "../libs/api-error.js";
 import { db } from '../libs/db.js';
 
-export const createPlaylist = async (req, res) => {
-  try {
-    const { name, description } = req.body;
-
-    const userId = req.user.id;
-
-    const playList = await db.playlist.create({
-      data: {
-        name,
-        description,
-        userId,
-      },
-    });
-
-    res.status(200).json({
-      success: true,
-      message: 'Playlist created successfully',
-      playList,
-    });
-  } catch (error) {
-    console.error('Error creating playlist:', error);
-    res.status(500).json({ error: 'Failed to create playlist' });
+export const createPlaylist = asyncHandler(async (req, res) => {
+  const { name, description } = req.body;
+  
+  if (!name) {
+    return res.status(400).json(new ApiError(400, "Playlist name is required"));
   }
-};
 
-export const getAllListDetails = async (req, res) => {
-  try {
-    const playlists = await db.playlist.findMany({
-      where: {
-        userId: req.user.id,
-      },
-      include: {
-        problems: {
-          include: {
-            problem: true,
-          },
+  const userId = req.user.id;
+
+  const playList = await db.playlist.create({
+    data: {
+      name,
+      description,
+      userId,
+    },
+  });
+
+  return res.status(201).json(
+    new ApiResponse(201, playList, "Playlist created successfully")
+  );
+});
+
+export const getAllListDetails = asyncHandler(async (req, res) => {
+  const playlists = await db.playlist.findMany({
+    where: {
+      userId: req.user.id,
+    },
+    include: {
+      problems: {
+        include: {
+          problem: true,
         },
       },
-    });
+    },
+  });
 
-    res.status(200).json({
-      success: true,
-      message: 'Playlist fetched successfully',
-      playlists,
-    });
-  } catch (error) {
-    console.error('Error fetching playlist:', error);
-    res.status(500).json({ error: 'Failed to fetch playlist' });
-  }
-};
+  return res.status(200).json(
+    new ApiResponse(200, playlists, "Playlists fetched successfully")
+  );
+});
 
-export const getPlayListDetails = async (req, res) => {
+export const getPlayListDetails = asyncHandler(async (req, res) => {
   const { playlistId } = req.params;
-  try {
-    const playlist = await db.playlist.findUnique({
-      where: {
-        id: playlistId,
-        userId: req.user.id,
-      },
-      include: {
-        problems: {
-          include: {
-            problem: true,
-          },
+  
+  const playlist = await db.playlist.findUnique({
+    where: {
+      id: playlistId,
+      userId: req.user.id,
+    },
+    include: {
+      problems: {
+        include: {
+          problem: true,
         },
       },
-    });
+    },
+  });
 
-    if (!playlist) {
-      return res.status(404).json({ error: 'Playlist not found' });
-    }
-    res.status(200).json({
-      success: true,
-      message: 'Playlist fetched successfully',
-      playlist,
-    });
-  } catch (error) {
-    console.error('Error fetching playlist:', error);
-    res.status(500).json({ error: 'Failed to fetch playlist' });
+  if (!playlist) {
+    return res.status(404).json(new ApiError(404, "Playlist not found"));
   }
-};
+  
+  return res.status(200).json(
+    new ApiResponse(200, playlist, "Playlist fetched successfully")
+  );
+});
 
-export const addProblemToPlaylist = async (req, res) => {
+export const addProblemToPlaylist = asyncHandler(async (req, res) => {
   const { playlistId } = req.params;
   const { problemIds } = req.body;
 
-  try {
-    if (!Array.isArray(problemIds) || problemIds.length === 0) {
-      return res.status(400).json({ error: 'Invalid or missing problemsId' });
-    }
-
-    // Create records fro each problems in the playlist
-    const problemsInPlaylist = await db.problemsInPlaylist.createMany({
-      data: problemIds.map((problemId) => ({
-        playlistId,
-        problemId,
-      })),
-    });
-
-    res.status(201).json({
-      success: true,
-      message: 'Problems added to playlist successfully',
-      problemsInPlaylist,
-    });
-  } catch (error) {
-    console.error('Error Adding problem in  playlist:', error);
-    res.status(500).json({ error: 'Failed to adding problem in playlist' });
+  if (!Array.isArray(problemIds) || problemIds.length === 0) {
+    return res.status(400).json(new ApiError(400, "Invalid or missing problemIds"));
   }
-};
 
-export const deletePlaylist = async (req, res) => {
+  // Verify the playlist belongs to the user
+  const playlist = await db.playlist.findUnique({
+    where: {
+      id: playlistId,
+      userId: req.user.id
+    }
+  });
+
+  if (!playlist) {
+    return res.status(404).json(new ApiError(404, "Playlist not found or unauthorized"));
+  }
+
+  // Create records for each problem in the playlist
+  const problemsInPlaylist = await db.problemsInPlaylist.createMany({
+    data: problemIds.map((problemId) => ({
+      playlistId,
+      problemId,
+    })),
+    skipDuplicates: true, // Skip if the problem is already in the playlist
+  });
+
+  return res.status(201).json(
+    new ApiResponse(201, problemsInPlaylist, "Problems added to playlist successfully")
+  );
+});
+
+export const deletePlaylist = asyncHandler(async (req, res) => {
   const { playlistId } = req.params;
 
-  try {
-    const deletedPlaylist = await db.playlist.delete({
-      where: {
-        id: playlistId,
-      },
-    });
+  // Verify the playlist belongs to the user
+  const playlist = await db.playlist.findUnique({
+    where: {
+      id: playlistId,
+      userId: req.user.id
+    }
+  });
 
-    res.status(200).json({
-      success: true,
-      message: 'Playlist deleted successfully',
-      deletedPlaylist,
-    });
-  } catch (error) {
-    console.error('Error deleting playlist:', error.message);
-    res.status(500).json({ error: 'Failed to delete playlist' });
+  if (!playlist) {
+    return res.status(404).json(new ApiError(404, "Playlist not found or unauthorized"));
   }
-};
 
-export const removeProblemFromPlaylist = async (req, res) => {
+  const deletedPlaylist = await db.playlist.delete({
+    where: {
+      id: playlistId,
+    },
+  });
+
+  return res.status(200).json(
+    new ApiResponse(200, deletedPlaylist, "Playlist deleted successfully")
+  );
+});
+
+export const removeProblemFromPlaylist = asyncHandler(async (req, res) => {
   const { playlistId } = req.params;
   const { problemIds } = req.body;
 
-  try {
-    if (!Array.isArray(problemIds) || problemIds.length === 0) {
-      return res.status(400).json({ error: 'Invalid or missing problemsId' });
-    }
-
-    const deletedProblem = await db.problemsInPlaylist.deleteMany({
-      where: {
-        playlistId,
-        problemId: {
-          in: problemIds,
-        },
-      },
-    });
-
-    res.status(200).json({
-      success: true,
-      message: 'Problem removed from playlist successfully',
-      deletedProblem,
-    });
-  } catch (error) {
-    console.error('Error removing problem from playlist:', error.message);
-    res.status(500).json({ error: 'Failed to remove problem from playlist' });
+  if (!Array.isArray(problemIds) || problemIds.length === 0) {
+    return res.status(400).json(new ApiError(400, "Invalid or missing problemIds"));
   }
-};
+
+  // Verify the playlist belongs to the user
+  const playlist = await db.playlist.findUnique({
+    where: {
+      id: playlistId,
+      userId: req.user.id
+    }
+  });
+
+  if (!playlist) {
+    return res.status(404).json(new ApiError(404, "Playlist not found or unauthorized"));
+  }
+
+  const deletedProblems = await db.problemsInPlaylist.deleteMany({
+    where: {
+      playlistId,
+      problemId: {
+        in: problemIds,
+      },
+    },
+  });
+
+  return res.status(200).json(
+    new ApiResponse(200, deletedProblems, "Problems removed from playlist successfully")
+  );
+});
