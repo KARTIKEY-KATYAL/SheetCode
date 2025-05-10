@@ -4,7 +4,7 @@ type Props = {}
 
 const Profile = (props: Props) => {
   return (
-    <div>Profile</div>
+    <div className='h-[100vh]'>Profile</div>
   )
 }
 
