@@ -32,7 +32,7 @@ const Header = (props: Props) => {
 
   return (
     <header
-      className={`top-0 left-0 right-0 z-50 transition-all shadow-lg duration-300 h-[5vh] flex items-center border-b border-slate-200 dark:border-slate-800 ${
+      className={`top-0 left-0 right-0 z-50 w-full transition-all shadow-lg duration-300 h-[5vh] flex items-center border-b border-slate-200 dark:border-slate-800 ${
       isScrolled
         ? 'bg-slate-50 dark:bg-slate-900/95 backdrop-blur-sm shadow-md'
         : 'bg-white dark:bg-slate-900'

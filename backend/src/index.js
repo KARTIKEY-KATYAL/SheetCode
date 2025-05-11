@@ -1,6 +1,7 @@
 import express from 'express';
 import dotenv from 'dotenv';
 import CookieParser from 'cookie-parser';
+import cors from "cors"
 dotenv.config();
 
 const app = express();
@@ -10,7 +11,10 @@ const port = process.env.PORT || 8000;
 app.use(express.json());
 app.use(CookieParser());
 app.use(express.urlencoded());
-
+app.use(cors({
+  origin:process.env.FRONTEND_URL,
+  credentials: true,
+}))
 app.get('/', (req, res) => {
   res.send('ok!');
 });
