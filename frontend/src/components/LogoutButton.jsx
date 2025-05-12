@@ -7,11 +7,7 @@ const LogoutButton = ({children})=>{
 
     const onLogout = async()=>{
         await logout();
-        
     }
-
-
-
     return (
         <button className="btn btn-primary" onClick={onLogout}> 
             {children}

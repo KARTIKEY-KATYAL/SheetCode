@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Menu, X, LogOut } from 'lucide-react';
+import { Menu, X, LogOut, User, Code } from 'lucide-react';
 import { ToggleLeft } from "./ToggleLeft";
 import { useTheme } from "./ThemeProvider";
 import { Link } from 'react-router-dom';
@@ -38,6 +38,15 @@ const Header = () => {
         await logout();
     };
 
+    const LogoutButton = ({ children, className }) => (
+        <button
+            onClick={handleLogout}
+            className={`w-full text-left flex items-center px-4 py-2 text-base font-semibold ${className}`}
+        >
+            {children}
+        </button>
+    );
+
     return (
         <header
             className={`top-0 left-0 right-0 z-50 w-full transition-all shadow-lg duration-300 h-[5vh] flex items-center border-b border-slate-200 dark:border-slate-800 ${
@@ -69,15 +78,58 @@ const Header = () => {
                     </button>
                     
                     {authUser ? (
-                        <button
-                            onClick={handleLogout}
-                            className="text-xs sm:text-sm cursor-pointer font-bold bg-red-700 text-white hover:text-white hover:bg-red-800 px-3 py-1 rounded"
-                        >
-                            <div className="flex items-center">
-                                <LogOut className="w-4 h-4 mr-1" />
-                                Logout
-                            </div>
-                        </button>
+                        /* User Profile and Dropdown */
+                        <div className="dropdown dropdown-end">
+                            <label tabIndex={0} className="btn btn-ghost btn-circle avatar flex flex-row">
+                                <div className="w-10 rounded-full">
+                                    <img
+                                        src={
+                                            authUser?.image ||
+                                            "https://avatar.iran.liara.run/public/boy"
+                                        }
+                                        alt="User Avatar"
+                                        className="object-cover"
+                                    />
+                                </div>
+                            </label>
+                            <ul
+                                tabIndex={0}
+                                className="menu menu-sm dropdown-content mt-3 z-[1] p-2 shadow bg-base-100 rounded-box w-52 space-y-3"
+                            >
+                                <li>
+                                    <p className="text-base font-semibold">
+                                        {authUser?.name}
+                                    </p>
+                                    <hr className="border-gray-200/10" />
+                                </li>
+                                <li>
+                                    <Link
+                                        to="/profile"
+                                        className="hover:bg-primary hover:text-white text-base font-semibold"
+                                    >
+                                        <User className="w-4 h-4 mr-2" />
+                                        My Profile
+                                    </Link>
+                                </li>
+                                {authUser?.role === "ADMIN" && (
+                                    <li>
+                                        <Link
+                                            to="/admin/add-problem"
+                                            className="hover:bg-primary hover:text-white text-base font-semibold"
+                                        >
+                                            <Code className="w-4 h-4 mr-1" />
+                                            Add Problem
+                                        </Link>
+                                    </li>
+                                )}
+                                <li>
+                                    <LogoutButton className="hover:bg-primary hover:text-white">
+                                        <LogOut className="w-4 h-4 mr-2" />
+                                        Logout
+                                    </LogoutButton>
+                                </li>
+                            </ul>
+                        </div>
                     ) : (
                         <div className='flex gap-1 lg:gap-2'>
                             <Link to="/login">
@@ -107,6 +159,22 @@ const Header = () => {
                     >
                         <ToggleLeft isActive={theme === "dark"} width={24} height={24} />
                     </button>
+                    {authUser ? (
+                        <div className="dropdown dropdown-end mx-2">
+                            <label tabIndex={0} className="btn btn-ghost btn-circle avatar flex-shrink-0">
+                                <div className="w-8 h-8 rounded-full">
+                                    <img
+                                        src={
+                                            authUser?.image ||
+                                            "https://avatar.iran.liara.run/public/boy"
+                                        }
+                                        alt="User Avatar"
+                                        className="object-cover"
+                                    />
+                                </div>
+                            </label>
+                        </div>
+                    ) : null}
                     <button
                         className="p-1 text-gray-700 dark:text-white"
                         onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -123,6 +191,24 @@ const Header = () => {
                 } transition-transform duration-300 ease-in-out md:hidden`}
             >
                 <div className="container mx-auto px-4 py-4 flex flex-col space-y-3">
+                    {authUser && (
+                        <div className="flex items-center mb-4 p-2 bg-gray-100 dark:bg-gray-800 rounded-lg">
+                            <div className="w-10 h-10 rounded-full overflow-hidden mr-3">
+                                <img
+                                    src={
+                                        authUser?.image ||
+                                        "https://avatar.iran.liara.run/public/boy"
+                                    }
+                                    alt="User Avatar"
+                                    className="object-cover w-full h-full"
+                                />
+                            </div>
+                            <div>
+                                <p className="font-medium">{authUser?.name}</p>
+                                <p className="text-xs text-gray-500 dark:text-gray-400">{authUser?.email}</p>
+                            </div>
+                        </div>
+                    )}
                     <MobileNavLink
                         to="/problems"
                         onClick={() => setMobileMenuOpen(false)}
@@ -141,6 +227,21 @@ const Header = () => {
                     >
                         Profile
                     </MobileNavLink>
+                    
+                    {/* Admin link for mobile */}
+                    {authUser && authUser.role === "ADMIN" && (
+                        <MobileNavLink
+                            to="/admin/add-problem"
+                            onClick={() => setMobileMenuOpen(false)}
+                            className="bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400 rounded-md"
+                        >
+                            <span className="flex items-center">
+                                <Code className="w-4 h-4 mr-2" />
+                                Add Problem
+                            </span>
+                        </MobileNavLink>
+                    )}
+                    
                     <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-800 flex flex-col space-y-3">
                         {authUser ? (
                             <button
@@ -185,11 +286,11 @@ function NavLink({ to, children }) {
     );
 }
 
-function MobileNavLink({ to, onClick, children }) {
+function MobileNavLink({ to, onClick, children, className = "" }) {
     return (
         <Link
             to={to}
-            className="text-gray-700 dark:text-gray-300 hover:text-primary dark:hover:text-white transition-colors font-medium text-lg py-2"
+            className={`text-gray-700 dark:text-gray-300 hover:text-primary dark:hover:text-white transition-colors font-medium text-lg py-2 ${className}`}
             onClick={onClick}
         >
             {children}

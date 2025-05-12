@@ -3,17 +3,27 @@ import { useAuthStore } from "../store/useAuthStore";
 import { Loader } from "lucide-react";
 
 const AdminRoute = () => {
-    const {authUser , isCheckingAuth} = useAuthStore()
+    const { authUser, isCheckingAuth } = useAuthStore();
 
-     if (isCheckingAuth) {
-      return <div className="flex items-center justify-center h-screen"><Loader className="size-10 animate-spin" /></div>;
+    // Add more detailed logging for debugging
+    console.log("AdminRoute check:", {
+        authUser,
+        role: authUser?.role,
+        isAdmin: authUser?.role === "ADMIN",
+        isCheckingAuth
+    });
+
+    if (isCheckingAuth) {
+        return <div className="flex items-center justify-center h-screen"><Loader className="size-10 animate-spin" /></div>;
     }
   
-    if(!authUser || authUser.role !== "ADMIN"){
-        return <Navigate to="/"/>;
+    if (!authUser || authUser.role !== "ADMIN") {
+        console.log("Access denied: Not an admin user");
+        return <Navigate to="/" replace />;
     }
 
-  return <Outlet/>
+    console.log("Admin access granted");
+    return <Outlet />;
 }
 
-export default AdminRoute
+export default AdminRoute;

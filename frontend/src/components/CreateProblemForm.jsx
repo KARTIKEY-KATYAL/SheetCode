@@ -562,7 +562,22 @@ const CreateProblemForm = () => {
   const [isLoading , setIsLoading] = useState(false);
 
   const onSubmit = async (value)=>{
-    console.log(value)
+    try {
+      setIsLoading(true);
+      const res = await axiosInstance.post('/problems/create-problem', value);
+      console.log(res.data);
+      toast.success(res.data.message || "Problem created successfully");
+      reset(); // Reset the form after successful creation
+      navigation("/problems"); // Redirect to problems list or desired page
+    } catch (error) {
+      toast.error(
+      error?.response?.data?.message ||
+      error?.message ||
+      "Failed to create problem"
+      );
+    } finally {
+      setIsLoading(false);
+    }
   }
 
   const loadSampleData=()=>{

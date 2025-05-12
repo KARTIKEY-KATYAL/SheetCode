@@ -37,9 +37,9 @@ export function FAQ() {
   };
 
   return (
-    <section id="faq" className="py-20 bg-gray-100 dark:bg-slate-950">
-      <div className="container mx-auto px-4 md:px-6">
-        <div className="text-center mb-12">
+    <section id="faq" className="py-20 bg-gray-100 cursor-pointer dark:bg-slate-950">
+      <div className="container mx-auto px-4 cursor-pointer md:px-6">
+        <div className="text-center mb-12 cursor-pointer">
           <h2 className="text-3xl md:text-4xl font-bold mb-4 bg-gradient-to-r from-sky-500 to-indigo-500 dark:from-sky-400 dark:to-indigo-400 bg-clip-text text-transparent">
             Frequently Asked Questions
           </h2>
@@ -48,7 +48,7 @@ export function FAQ() {
           </p>
         </div>
 
-        <div className="max-w-3xl mx-auto">
+        <div className="max-w-3xl mx-auto cursor-pointer">
           {faqItems.map((item, index) => (
             <div 
               key={index} 
@@ -81,7 +81,7 @@ export function FAQ() {
           ))}
         </div>
 
-        <div className="mt-12 text-center">
+        <div className="mt-12 text-center cursor-pointer">
           <p className="text-gray-600 dark:text-slate-400 mb-4">
             Still have questions? We're here to help.
           </p>
