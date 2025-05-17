@@ -6,7 +6,7 @@ function ProblemTable() {
     <div>
       
     </div>
-  )
-}
+  );
+};
 
 export default ProblemTable
