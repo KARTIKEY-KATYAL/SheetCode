@@ -48,13 +48,15 @@ const Header = () => {
     );
 
     return (
-        <header
-            className={`top-0 left-0 right-0 z-50 w-full transition-all shadow-lg duration-300 h-[5vh] flex items-center border-b border-slate-200 dark:border-slate-800 ${
-                isScrolled
-                    ? 'bg-slate-50 dark:bg-slate-900/95 backdrop-blur-sm shadow-md'
-                    : 'bg-white dark:bg-slate-900'
-            }`}
-        >
+   <header
+  className={`z-50 h-[6vh] flex items-center border-b
+    border-slate-200 dark:border-slate-800 bg-[#CBE4DE] dark:bg-[#03001C] shadow-lg
+    scale-down-bottom-normal duration-300 ease-linear
+    ${isScrolled 
+      ? 'fixed top-4 left-1/2 border-black border-2  -translate-x-1/2 w-[95%] h-[8vh] md:w-[80%] lg:w-[60%]  rounded-2xl text-white backdrop-blur-sm shadow-md'
+      : 'w-full top-0 left-0 translate-x-0 bg-white dark:bg-neutral-950 shadow-lg border-b-2 rounded-none'}
+  `}>
+
             <div className="container mx-auto px-3 md:px-6 py-2 flex items-center justify-between">
                 <Link to='/'>
                     <Logo size={8} />
@@ -79,7 +81,7 @@ const Header = () => {
                     
                     {authUser ? (
                         /* User Profile and Dropdown */
-                        <div className="dropdown dropdown-end">
+                        <div className="dropdown dropdown-end text-white">
                             <label tabIndex={0} className="btn btn-ghost btn-circle avatar flex flex-row">
                                 <div className="w-10 rounded-full">
                                     <img

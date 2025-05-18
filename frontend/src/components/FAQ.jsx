@@ -52,7 +52,7 @@ export function FAQ() {
           {faqItems.map((item, index) => (
             <div 
               key={index} 
-              className={`mb-4 bg-white dark:bg-slate-900/50 border ${
+              className={`mb-4 bg-white cursor-pointer dark:bg-slate-900/50 border ${
                 openIndex === index 
                   ? 'border-primary dark:border-sky-500' 
                   : 'border-gray-200 dark:border-slate-800'
@@ -71,7 +71,7 @@ export function FAQ() {
               </button>
               
               <div 
-                className={`px-6 overflow-hidden transition-all duration-300 ${
+                className={`px-6 overflow-hidden cursor-pointer transition-all duration-300 ${
                   openIndex === index ? 'max-h-96 pb-4' : 'max-h-0'
                 }`}
               >

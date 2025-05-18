@@ -1,17 +1,24 @@
-import React from 'react'
-import { useEffect } from 'react'
-import { useProblemStore } from '../store/useProblemStore'
+import React, { useEffect } from 'react';
+import { useProblemStore } from '../store/useProblemStore';
+import ProblemTable from '../components/ProblemTable';
 
 function Problems() {
-  const {getAllProblems , problems , isProblemLoading} = useProblemStore()
+  const { getAllProblems, problems, isProblemsLoading } = useProblemStore();
 
   useEffect(() => {
-    getAllProblems()
-  }, [])
-  
+    getAllProblems();
+  }, []);
+
   return (
-    <div>Problems</div>
-  )
+    <div>
+      {/* Handle loading state */}
+      {isProblemsLoading ? (
+        <p className="text-center mt-10">Loading problems...</p>
+      ) : (
+        <ProblemTable problems={problems.data} />
+      )}
+    </div>
+  );
 }
 
-export default Problems
+export default Problems;

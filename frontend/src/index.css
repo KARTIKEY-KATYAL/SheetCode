@@ -124,3 +124,7 @@
     @apply bg-background text-foreground;
   }
 }
+
+.scale-down-bottom-normal { 
+    animation: scale-down-bottom-normal 0.4s cubic-bezier(0.250, 0.460, 0.450, 0.940) 0s 1 normal both; 
+}

@@ -50,8 +50,8 @@ const SignUpPage = () => {
             dark:bg-gradient-to-r dark:from-[#0f172a] dark:to-[#334155]
             transition-colors duration-500 p-4 py-8"
           >
-            <div className="mb-6 lg:mb-8">
-              <Logo size={8} />
+            <div className="mb-2 lg:mb-2">
+              <Logo size={10} />
             </div>
             <div className="w-full max-w-md bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6 lg:p-8 border border-gray-300 dark:border-gray-700">
               <h2 className="text-xl lg:text-2xl font-bold text-center text-gray-900 dark:text-white mb-6">
