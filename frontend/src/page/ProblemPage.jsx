@@ -152,183 +152,182 @@ const ProblemPage = () => {
     }
   };
 
-  const handleRunCode = (e)=>{
-    e.preventDefault()
+  const handleRunCode = (e) => {
+    e.preventDefault();
     try {
-        const language_id = getLanguageId(selectedLanguage);
-        const stdin = problem.testcases.map((tc)=>tc.input);
-          const expected_outputs = problem.testcases.map((tc) => tc.output);
-          executeCode(code , language_id , stdin , expected_outputs , id)
+      const language_id = getLanguageId(selectedLanguage);
+      const stdin = problem.testcases.map((tc) => tc.input);
+      const expected_outputs = problem.testcases.map((tc) => tc.output);
+      executeCode(code, language_id, stdin, expected_outputs, id);
     } catch (error) {
-        console.log("Error executing code" , error)
+      console.log("Error executing code", error);
     }
-  }
+  };
 
   return (
-  <div className="min-h-screen w-full bg-white dark:bg-black text-black dark:text-white transition-colors">
-    {isProblemLoading || !problem ? (
-      <div className="flex justify-center items-center h-screen">
-        <div className="loading loading-spinner loading-lg"></div>
-        <p className="ml-3 text-lg font-medium">Loading problem...</p>
-      </div>
-    ) : (
-      <>
-        <nav className="navbar bg-gray-100 dark:bg-gray-900 shadow-lg px-4 text-black dark:text-white">
-          <div className="flex-1 gap-2 container items-center">
-            <Link to={'/'} className="flex items-center gap-2 text-blue-600 dark:text-blue-400">
-              <Home className="w-6 h-6" />
-              <ChevronRight className="w-4 h-4" />
-            </Link>
-            <div className="mt-2">
-              <h1 className="text-xl font-bold text-red-600">{problem.title}</h1>
-              <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 mt-5">
-                <Clock className="w-4 h-4" />
-                <span>Updated {new Date(problem.createdAt).toLocaleString("en-US", {
-                  year: "numeric", month: "long", day: "numeric",
-                })}</span>
-                <span>•</span>
-                <Users className="w-4 h-4" />
-                <span>{10} Submissions</span>
-                <span>•</span>
-                <ThumbsUp className="w-4 h-4" />
-                <span>95% Success Rate</span>
-              </div>
-            </div>
-          </div>
-          <div className="flex-none gap-4">
-            <button 
-              className={`btn btn-circle ${isBookmarked ? 'text-red-500' : 'text-gray-500'} dark:text-white`}
-              onClick={() => setIsBookmarked(!isBookmarked)}
-            >
-              <Bookmark className="w-5 h-5" />
-            </button>
-            <button className="btn btn-ghost btn-circle text-gray-500 dark:text-white">
-              <Share2 className="w-5 h-5" />
-            </button>
-            <select 
-              className="select select-bordered bg-white dark:bg-gray-800 text-black dark:text-white font-bold w-40"
-              value={selectedLanguage}
-              onChange={handleLanguageChange}
-            >
-              {Object.keys(problem.codeSnippets || {}).map((lang) => (
-                <option key={lang} value={lang}>
-                  {lang.charAt(0).toUpperCase() + lang.slice(1)}
-                </option>
-              ))}
-            </select>
-          </div>
-        </nav>
-
-        <div className="container mx-auto p-4">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Left: Description / Tabs */}
-            <div className="card bg-gray-100 dark:bg-gray-900 shadow-xl">
-              <div className="card-body p-0">
-                <div className="tabs tabs-bordered">
-                  {["description", "submissions", "discussion", "hints"].map(tab => (
-                    <button
-                      key={tab}
-                      className={`tab gap-2 ${activeTab === tab ? "tab-active border-blue-500 text-blue-500 dark:text-blue-400" : "text-gray-500 dark:text-gray-300"}`}
-                      onClick={() => setActiveTab(tab)}
-                    >
-                      {tab === "description" && <FileText className="w-4 h-4" />}
-                      {tab === "submissions" && <Code2 className="w-4 h-4" />}
-                      {tab === "discussion" && <MessageSquare className="w-4 h-4" />}
-                      {tab === "hints" && <Lightbulb className="w-4 h-4" />}
-                      {tab.charAt(0).toUpperCase() + tab.slice(1)}
-                    </button>
-                  ))}
-                </div>
-                <div className="p-6">{renderTabContent()}</div>
-              </div>
-            </div>
-
-            {/* Right: Code Editor */}
-            <div className="card bg-gray-100 dark:bg-gray-900 shadow-xl">
-              <div className="card-body p-0">
-                <div className="tabs tabs-bordered">
-                  <button className="tab tab-active gap-2 text-blue-600 dark:text-blue-400">
-                    <Terminal className="w-4 h-4" />
-                    Code Editor
-                  </button>
-                </div>
-
-                <div className="h-[600px] w-full">
-                  <Editor
-                    height="100%"
-                    language={selectedLanguage.toLowerCase()}
-                    theme="vs-dark"
-                    value={code}
-                    onChange={(value) => setCode(value || '')}
-                    options={{
-                      minimap: { enabled: false },
-                      fontSize: 22,
-                      lineNumbers: 'on',
-                      roundedSelection: false,
-                      scrollBeyondLastLine: false,
-                      readOnly: false,
-                      automaticLayout: true,
-                    }}
-                  />
-                </div>
-
-                <div className="p-4 border-t border-gray-300 dark:border-gray-700 bg-gray-200 dark:bg-gray-800">
-                  <div className="flex justify-between items-center">
-                    <button 
-                      className={`btn bg-blue-600 hover:bg-blue-700 text-white gap-2 ${isExecuting ? "loading" : ""}`}
-                      onClick={handleRunCode}
-                      disabled={isExecuting}
-                    >
-                      {!isExecuting && <Play className="w-4 h-4" />}
-                      Run Code
-                    </button>
-                    <button className="btn bg-red-600 hover:bg-red-700 text-white gap-2">
-                      Submit Solution
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Submission Results / Test Cases */}
-          <div className="card bg-gray-100 dark:bg-gray-900 shadow-xl mt-6">
-            <div className="card-body">
-              {submission ? (
-                <SubmissionResults submission={submission}/>
-              ) : (
-                <>
-                  <div className="flex items-center justify-between mb-6">
-                    <h3 className="text-xl font-bold text-blue-600 dark:text-blue-400">Test Cases</h3>
-                  </div>
-                  <div className="overflow-x-auto">
-                    <table className="table table-zebra w-full text-black dark:text-white">
-                      <thead>
-                        <tr>
-                          <th>Input</th>
-                          <th>Expected Output</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {testCases.map((testCase, index) => (
-                          <tr key={index}>
-                            <td className="font-mono">{testCase.input}</td>
-                            <td className="font-mono">{testCase.output}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </>
-              )}
-            </div>
-          </div>
+    <div className="min-h-screen w-full bg-white dark:bg-black text-black dark:text-white transition-colors">
+      {isProblemLoading || !problem ? (
+        <div className="flex justify-center items-center h-screen">
+          <div className="loading loading-spinner loading-lg"></div>
+          <p className="ml-3 text-lg font-medium">Loading problem...</p>
         </div>
-      </>
-    )}
-  </div>
-);
+      ) : (
+        <>
+          <nav className="navbar bg-gray-100 dark:bg-gray-900 shadow-lg px-4 py-3 text-black dark:text-white">
+            <div className="flex-1 gap-2 container items-center">
+              <Link to={'/'} className="flex items-center gap-2 text-blue-600 dark:text-blue-400">
+                <Home className="w-6 h-6" />
+                <ChevronRight className="w-4 h-4" />
+              </Link>
+              <div className="mt-2">
+                <h1 className="text-xl font-bold text-red-600">{problem.title}</h1>
+                <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 mt-2">
+                  <Clock className="w-4 h-4" />
+                  <span>Updated {new Date(problem.createdAt).toLocaleString("en-US", {
+                    year: "numeric", month: "long", day: "numeric",
+                  })}</span>
+                  <span>•</span>
+                  <Users className="w-4 h-4" />
+                  <span>{10} Submissions</span>
+                  <span>•</span>
+                  <ThumbsUp className="w-4 h-4" />
+                  <span>95% Success Rate</span>
+                </div>
+              </div>
+            </div>
+            <div className="flex-none gap-4">
+              <button 
+                className={`btn btn-circle ${isBookmarked ? 'text-red-500' : 'text-gray-500'} dark:text-white`}
+                onClick={() => setIsBookmarked(!isBookmarked)}
+              >
+                <Bookmark className="w-5 h-5" />
+              </button>
+              <button className="btn btn-ghost btn-circle text-gray-500 dark:text-white">
+                <Share2 className="w-5 h-5" />
+              </button>
+              <select 
+                className="select select-bordered bg-white dark:bg-gray-800 text-black dark:text-white font-bold w-40"
+                value={selectedLanguage}
+                onChange={handleLanguageChange}
+              >
+                {Object.keys(problem.codeSnippets || {}).map((lang) => (
+                  <option key={lang} value={lang}>
+                    {lang.charAt(0).toUpperCase() + lang.slice(1)}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </nav>
 
+          <div className="container mx-auto p-4">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Left: Description / Tabs */}
+              <div className="card bg-gray-100 dark:bg-gray-900 shadow-xl">
+                <div className="card-body p-0">
+                  <div className="tabs tabs-bordered">
+                    {["description", "submissions", "discussion", "hints"].map(tab => (
+                      <button
+                        key={tab}
+                        className={`tab gap-2 ${activeTab === tab ? "tab-active border-blue-500 text-blue-500 dark:text-blue-400" : "text-gray-500 dark:text-gray-300"}`}
+                        onClick={() => setActiveTab(tab)}
+                      >
+                        {tab === "description" && <FileText className="w-4 h-4" />}
+                        {tab === "submissions" && <Code2 className="w-4 h-4" />}
+                        {tab === "discussion" && <MessageSquare className="w-4 h-4" />}
+                        {tab === "hints" && <Lightbulb className="w-4 h-4" />}
+                        {tab.charAt(0).toUpperCase() + tab.slice(1)}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="p-6 overflow-y-auto max-h-[600px]">{renderTabContent()}</div>
+                </div>
+              </div>
+
+              {/* Right: Code Editor */}
+              <div className="card bg-gray-100 dark:bg-gray-900 shadow-xl">
+                <div className="card-body p-0">
+                  <div className="tabs tabs-bordered">
+                    <button className="tab tab-active gap-2 text-blue-600 dark:text-blue-400">
+                      <Terminal className="w-4 h-4" />
+                      Code Editor
+                    </button>
+                  </div>
+
+                  <div className="h-[600px] w-full border border-gray-300 dark:border-gray-700">
+                    <Editor
+                      height="100%"
+                      language={selectedLanguage.toLowerCase()}
+                      theme="vs-dark"
+                      value={code}
+                      onChange={(value) => setCode(value || '')}
+                      options={{
+                        minimap: { enabled: false },
+                        fontSize: 16,
+                        lineNumbers: 'on',
+                        roundedSelection: false,
+                        scrollBeyondLastLine: false,
+                        readOnly: false,
+                        automaticLayout: true,
+                      }}
+                    />
+                  </div>
+
+                  <div className="p-4 border-t border-gray-300 dark:border-gray-700 bg-gray-200 dark:bg-gray-800">
+                    <div className="flex justify-between items-center">
+                      <button 
+                        className={`btn bg-blue-600 hover:bg-blue-700 text-white gap-2 ${isExecuting ? "loading" : ""}`}
+                        onClick={handleRunCode}
+                        disabled={isExecuting}
+                      >
+                        {!isExecuting && <Play className="w-4 h-4" />}
+                        Run Code
+                      </button>
+                      <button className="btn bg-red-600 hover:bg-red-700 text-white gap-2">
+                        Submit Solution
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Submission Results / Test Cases */}
+            <div className="card bg-gray-100 dark:bg-gray-900 shadow-xl mt-6">
+              <div className="card-body">
+                {submission ? (
+                  <SubmissionResults submission={submission}/>
+                ) : (
+                  <>
+                    <div className="flex items-center justify-between mb-6">
+                      <h3 className="text-xl font-bold text-blue-600 dark:text-blue-400">Test Cases</h3>
+                    </div>
+                    <div className="overflow-x-auto">
+                      <table className="table table-zebra w-full text-black dark:text-white">
+                        <thead>
+                          <tr>
+                            <th>Input</th>
+                            <th>Expected Output</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {testCases.map((testCase, index) => (
+                            <tr key={index}>
+                              <td className="font-mono">{testCase.input}</td>
+                              <td className="font-mono">{testCase.output}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  );
 };
 
 export default ProblemPage;
