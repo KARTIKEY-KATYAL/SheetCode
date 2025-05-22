@@ -1,0 +1,64 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15
+    container_name: sheetcode-postgres
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
+      POSTGRES_DB: ${POSTGRES_DB:-sheetcode}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - sheetcode-network
+
+  backend:
+    build: 
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: sheetcode-backend
+    restart: always
+    depends_on:
+      - postgres
+    environment:
+      - NODE_ENV=production
+      - PORT=8080
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-password}@postgres:5432/${POSTGRES_DB:-sheetcode}
+      - JWT_SECRET=${JWT_SECRET:-your_jwt_secret_key_here}
+      - FRONTEND_URL=http://frontend
+      # Add Judge0 environment variables with default values
+      - JUDGE0_API_URL=${JUDGE0_API_URL:-https://judge0-ce.p.rapidapi.com}
+      - JUDGE0_API_KEY=${JUDGE0_API_KEY:-your_default_api_key}
+      - JUDGE0_API_HOST=${JUDGE0_API_HOST:-judge0-ce.p.rapidapi.com}
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+    networks:
+      - sheetcode-network
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: sheetcode-frontend
+    restart: always
+    depends_on:
+      - backend
+    ports:
+      - "80:80"
+    networks:
+      - sheetcode-network
+
+networks:
+  sheetcode-network:
+    driver: bridge
+
+volumes:
+  postgres-data:
+    driver: local

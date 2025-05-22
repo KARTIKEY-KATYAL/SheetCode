@@ -1,12 +1,19 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { useAuthStore } from "../store/useAuthStore";
 import { Link, useNavigate } from "react-router-dom";
 import { useProblemStore } from "../store/useProblemStore";
-import { Bookmark, PencilIcon, TrashIcon, Plus } from "lucide-react";
+import { Bookmark, PencilIcon, TrashIcon, Plus, Code, CheckCircle } from "lucide-react";
 
 const ProblemTable = ({ problems }) => {
   const { authUser } = useAuthStore();
   const navigate = useNavigate();
+  const { solvedProblems, getSolvedProblemByUser } = useProblemStore();
+  
+  // Fetch solved problems when component mounts
+  useEffect(() => {
+    getSolvedProblemByUser();
+  }, [getSolvedProblemByUser]);
+  
   const [search, setSearch] = useState("");
   const [difficulty, setDifficulty] = useState("ALL");
   const [selectedTag, setSelectedTag] = useState("ALL");
@@ -35,7 +42,7 @@ const ProblemTable = ({ problems }) => {
       );
   }, [problems, search, difficulty, selectedTag]);
 
-  const itemsPerPage = 5;
+  const itemsPerPage = 10;
   const totalPages = Math.ceil(filteredProblems.length / itemsPerPage);
   const paginatedProblems = useMemo(() => {
     return filteredProblems.slice(
@@ -69,12 +76,18 @@ const ProblemTable = ({ problems }) => {
 
   const handleAddToPlaylist = (id) => {};
 
+  // Create a set of solved problem IDs for quick lookup
+  const solvedProblemIds = useMemo(() => {
+    if (!Array.isArray(solvedProblems)) return new Set();
+    return new Set(solvedProblems.map(item => item.problemId));
+  }, [solvedProblems]);
+
   return (
-  <div className="w-full min-h-screen p-10 mx-auto bg-[#F4EEE0] dark:bg-[#03001C]">
+  <div className="w-full min-h-screen p-10 mx-auto bg-[#dcfce7] dark:bg-[#03001C]">
     
     {/* Header */}
     <div className="flex justify-between items-center mb-6">
-      <h2 className="text-3xl font-bold text-red-600">Problems</h2>
+      <h2 className="text-3xl font-bold flex items-center text-red-600 ">Problems</h2>
       <button className="btn bg-red-700 text-white font-bold gap-2 hover:bg-red-800 transition">
         <Plus className="w-5 h-5" aria-hidden="true" />
         Create Playlist
@@ -133,19 +146,19 @@ const ProblemTable = ({ problems }) => {
         <tbody>
           {paginatedProblems.length > 0 ? (
             paginatedProblems.map((problem) => {
-              const isSolved = (problem.solvedBy ?? []).some(
-                (user) => user.userId === authUser?.id
-              );
-
+              // Check if this problem is solved
+              const isSolved = solvedProblemIds.has(problem.id);
+              
               return (
                 <tr key={problem.id}>
                   <td>
-                    <input
-                      type="checkbox"
-                      checked={isSolved}
-                      readOnly
-                      className="checkbox checkbox-sm border-2 border-white"
-                    />
+                    {isSolved ? (
+                      <div className="flex justify-center">
+                        <CheckCircle className="w-5 h-5 text-green-500" />
+                      </div>
+                    ) : (
+                      <div className="w-5 h-5"></div> 
+                    )}
                   </td>
                   <td>
                     <Link

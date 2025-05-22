@@ -22,6 +22,8 @@ import { useProblemStore } from "../store/useProblemStore";
 import { useExecutionStore } from "../store/useExecutionStore";
 import { getLanguageId } from "../lib/lang";
 import SubmissionResults from "../components/Submission";
+import { useSubmissionStore } from "../store/useSubmissionStore";
+import SubmissionList from "../components/SubmissionList"
 
 const ProblemPage = () => {
   const { id } = useParams();
@@ -32,17 +34,27 @@ const ProblemPage = () => {
   const [isBookmarked, setIsBookmarked] = useState(false);
   const [testCases, setTestCases] = useState([]);
 
-  const { executeCode, submission, isExecuting } = useExecutionStore();
+    const {
+    submission: submissions,
+    isLoading: isSubmissionsLoading,
+    getSubmissionForProblem,
+    getSubmissionCountForProblem,
+    submissionCount,
+  } = useSubmissionStore()
 
-  const submissionCount = 10;
+  const { executeCode, submission, isExecuting } = useExecutionStore();
   
   useEffect(() => {
-    getProblemById(id);
+    getProblemById(id),
+    getSubmissionCountForProblem(id)
+    // console.log(getSubmissionCountForProblem(id))
   }, [id]);
 
   useEffect(() => {
     if (problem) {
-      setCode(problem.codeSnippets?.[selectedLanguage] || "");
+      setCode(
+        problem.codeSnippets?.[selectedLanguage] || submission?.sourceCode || ""
+      );
       setTestCases(
         problem.testcases?.map((tc) => ({
           input: tc.input,
@@ -52,11 +64,18 @@ const ProblemPage = () => {
     }
   }, [problem, selectedLanguage]);
 
+   useEffect(() => {
+    if (activeTab === "submissions" && id) {
+      getSubmissionForProblem(id);
+    }
+  }, [activeTab, id, getSubmissionForProblem]); // Added missing dependency
+
   const handleLanguageChange = (e) => {
     const lang = e.target.value;
     setSelectedLanguage(lang);
     setCode(problem.codeSnippets?.[lang] || "");
   };
+
 
   const renderTabContent = () => {
     switch (activeTab) {
@@ -119,12 +138,7 @@ const ProblemPage = () => {
           </div>
         );
       case "submissions":
-        return (
-          <div className="p-4 text-center text-base-content/70">
-            No Submisssion
-          </div>
-        );
-      // return <SubmissionsList submissions={submissions} isLoading={isSubmissionsLoading} />;
+        return <SubmissionList submissions={submissions} isLoading={isSubmissionsLoading} />;
       case "discussion":
         return (
           <div className="p-4 text-center text-base-content/70">
@@ -155,6 +169,11 @@ const ProblemPage = () => {
   const handleRunCode = (e) => {
     e.preventDefault();
     try {
+      if (!problem || !problem.testcases) {
+        console.error("Problem data not available");
+        return;
+      }
+      
       const language_id = getLanguageId(selectedLanguage);
       const stdin = problem.testcases.map((tc) => tc.input);
       const expected_outputs = problem.testcases.map((tc) => tc.output);
@@ -173,7 +192,7 @@ const ProblemPage = () => {
         </div>
       ) : (
         <>
-          <nav className="navbar bg-gray-100 dark:bg-gray-900 shadow-lg px-4 py-3 text-black dark:text-white">
+          <nav className="navbar bg-gray-100  dark:bg-gray-900 shadow-lg px-4 py-3 text-black dark:text-white">
             <div className="flex-1 gap-2 container items-center">
               <Link to={'/'} className="flex items-center gap-2 text-blue-600 dark:text-blue-400">
                 <Home className="w-6 h-6" />
@@ -188,7 +207,7 @@ const ProblemPage = () => {
                   })}</span>
                   <span>•</span>
                   <Users className="w-4 h-4" />
-                  <span>{10} Submissions</span>
+                  <span>{submissionCount} Submissions</span>
                   <span>•</span>
                   <ThumbsUp className="w-4 h-4" />
                   <span>95% Success Rate</span>
@@ -219,16 +238,16 @@ const ProblemPage = () => {
             </div>
           </nav>
 
-          <div className="container mx-auto p-4">
+          <div className="container mx-auto p-4 border-2 border-black rounded-lg bg-green-100">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Left: Description / Tabs */}
-              <div className="card bg-gray-100 dark:bg-gray-900 shadow-xl">
+              <div className="card text-black dark:text-white bg-gray-100 dark:bg-gray-900 shadow-xl">
                 <div className="card-body p-0">
-                  <div className="tabs tabs-bordered">
+                  <div className="tabs  tabs-bordered w-full flex gap-4 bg-blue-800">
                     {["description", "submissions", "discussion", "hints"].map(tab => (
                       <button
                         key={tab}
-                        className={`tab gap-2 ${activeTab === tab ? "tab-active border-blue-500 text-blue-500 dark:text-blue-400" : "text-gray-500 dark:text-gray-300"}`}
+                        className={`tab gap-2 ${activeTab === tab ? "tab-active border-blue-500 font-bold text-red-600 dark:text-blue-400" : "font-bold dark:text-gray-300"}`}
                         onClick={() => setActiveTab(tab)}
                       >
                         {tab === "description" && <FileText className="w-4 h-4" />}

@@ -91,7 +91,7 @@ export const getProblemSubmission = asyncHandler(async (req, res) => {
 export const getProblemCount = asyncHandler(async (req, res) => {
   try {
     const { problemId } = req.params;
-
+    // console.log(problemId)
     if (!problemId) {
       return res.status(400).json(new ApiError(400, 'Problem ID is required'));
     }
@@ -101,7 +101,7 @@ export const getProblemCount = asyncHandler(async (req, res) => {
         problemId: problemId,
       },
     });
-
+    // console.log(submissionCount)
     return res
       .status(200)
       .json(

@@ -110,7 +110,11 @@ export const LogoutUser = asyncHandler(async (req, res) => {
     new ApiResponse(200, user, "Log Out Successfully")
   );
 });
+
 export const CheckUser = asyncHandler(async (req, res) => {
+  if (!req.user){
+    return new ApiError(404,"User not Found")
+  }
   res.status(200).json(
     new ApiResponse(200, req.user, "User Found"),
   );

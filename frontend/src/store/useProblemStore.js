@@ -2,7 +2,7 @@ import { create } from "zustand";
 import { axiosInstance } from "../lib/axios";
 import { toast } from "react-hot-toast";
 
-export const useProblemStore = create((set) => ({
+export const useProblemStore = create((set, get) => ({  // Add the get parameter here
   problems: [],
   problem: null,
   solvedProblems: [],
@@ -14,8 +14,10 @@ export const useProblemStore = create((set) => ({
       set({ isProblemsLoading: true });
 
       const res = await axiosInstance.get("/problems/get-all-problems");
-
       set({ problems: res.data });
+      
+      // Use get() to access the getSolvedProblemByUser function
+      await get().getSolvedProblemByUser();
     } catch (error) {
       console.log("Error getting all problems", error);
       toast.error("Error in getting problems");
@@ -42,12 +44,13 @@ export const useProblemStore = create((set) => ({
 
   getSolvedProblemByUser: async () => {
     try {
-      const res = await axiosInstance.get("/problems/get-solved-problem");
-
-      set({ solvedProblems: res.data });
+      const res = await axiosInstance.get("/problems/get-solved");
+      set({ solvedProblems: res.data.data || [] });
+      // Fix: Use get() to access the current state
+      console.log("Solved problems:", res.data.data);
     } catch (error) {
       console.log("Error getting solved problems", error);
-      toast.error("Error getting solved problems");
+      // Don't show error toast, not critical
     }
   },
   UpdateProblembyId:async (id) => {
