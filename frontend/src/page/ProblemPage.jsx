@@ -53,7 +53,7 @@ const ProblemPage = () => {
   useEffect(() => {
     if (problem) {
       setCode(
-        problem.codeSnippets?.[selectedLanguage] || submission?.sourceCode || ""
+        problem.codeSnippets?.[selectedLanguage] || submission?.sourceCode
       );
       setTestCases(
         problem.testcases?.map((tc) => ({
@@ -73,7 +73,7 @@ const ProblemPage = () => {
   const handleLanguageChange = (e) => {
     const lang = e.target.value;
     setSelectedLanguage(lang);
-    setCode(problem.codeSnippets?.[lang] || "");
+    setCode(problem.codeSnippets?.[lang]);
   };
 
 
@@ -192,7 +192,7 @@ const ProblemPage = () => {
         </div>
       ) : (
         <>
-          <nav className="navbar bg-gray-100  dark:bg-gray-900 shadow-lg px-4 py-3 text-black dark:text-white">
+          <nav className="navbar bg-gray-100  dark:bg-gray-900 shadow-lg px-4 py-3  text-black dark:text-white">
             <div className="flex-1 gap-2 container items-center">
               <Link to={'/'} className="flex items-center gap-2 text-blue-600 dark:text-blue-400">
                 <Home className="w-6 h-6" />
@@ -238,7 +238,7 @@ const ProblemPage = () => {
             </div>
           </nav>
 
-          <div className="container mx-auto p-4 border-2 border-black rounded-lg bg-green-100">
+          <div className="container mx-auto p-4 border-2 border-black rounded-lg ">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Left: Description / Tabs */}
               <div className="card text-black dark:text-white bg-gray-100 dark:bg-gray-900 shadow-xl">
@@ -321,16 +321,16 @@ const ProblemPage = () => {
                       <h3 className="text-xl font-bold text-blue-600 dark:text-blue-400">Test Cases</h3>
                     </div>
                     <div className="overflow-x-auto">
-                      <table className="table table-zebra w-full text-black dark:text-white">
+                      <table className="table table-zebra w-full border-2 border-black text-black dark:text-white">
                         <thead>
-                          <tr>
+                          <tr className="text-black text-lg dark:text-white">
                             <th>Input</th>
                             <th>Expected Output</th>
                           </tr>
                         </thead>
                         <tbody>
                           {testCases.map((testCase, index) => (
-                            <tr key={index}>
+                            <tr key={index} className="bg-white text-black font-bold dark:bg-slate-900 dark:text-white">
                               <td className="font-mono">{testCase.input}</td>
                               <td className="font-mono">{testCase.output}</td>
                             </tr>

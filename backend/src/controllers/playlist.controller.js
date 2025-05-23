@@ -90,18 +90,25 @@ export const addProblemToPlaylist = asyncHandler(async (req, res) => {
     return res.status(404).json(new ApiError(404, "Playlist not found or unauthorized"));
   }
 
-  // Create records for each problem in the playlist
-  const problemsInPlaylist = await db.problemsInPlaylist.createMany({
-    data: problemIds.map((problemId) => ({
-      playlistId,
-      problemId,
-    })),
-    skipDuplicates: true, // Skip if the problem is already in the playlist
-  });
+  try {
+    // Fix: Change playlistId to playListId (matching your schema)
+    const problemsInPlaylist = await db.problemInPlaylist.createMany({
+      data: problemIds.map((problemId) => ({
+        playListId: playlistId,  // Fixed: use correct casing to match schema
+        problemId,
+      })),
+      skipDuplicates: true,
+    });
 
-  return res.status(201).json(
-    new ApiResponse(201, problemsInPlaylist, "Problems added to playlist successfully")
-  );
+    return res.status(201).json(
+      new ApiResponse(201, problemsInPlaylist, "Problems added to playlist successfully")
+    );
+  } catch (error) {
+    console.error("Error adding problems to playlist:", error);
+    return res.status(500).json(
+      new ApiError(500, "Failed to add problems to playlist")
+    );
+  }
 });
 
 export const deletePlaylist = asyncHandler(async (req, res) => {
@@ -150,9 +157,9 @@ export const removeProblemFromPlaylist = asyncHandler(async (req, res) => {
     return res.status(404).json(new ApiError(404, "Playlist not found or unauthorized"));
   }
 
-  const deletedProblems = await db.problemsInPlaylist.deleteMany({
+  const deletedProblems = await db.problemInPlaylist.deleteMany({
     where: {
-      playlistId,
+      playListId: playlistId,  // Match your schema's casing
       problemId: {
         in: problemIds,
       },

@@ -2,7 +2,11 @@ import React, { useState, useMemo, useEffect } from "react";
 import { useAuthStore } from "../store/useAuthStore";
 import { Link, useNavigate } from "react-router-dom";
 import { useProblemStore } from "../store/useProblemStore";
-import { Bookmark, PencilIcon, TrashIcon, Plus, Code, CheckCircle } from "lucide-react";
+import { Bookmark, PencilIcon, TrashIcon, Plus, Code, CheckCircle, CircleDashed } from "lucide-react";
+import { usePlaylistStore } from "../store/usePlaylistStore";
+import AddToPlaylistModal from "./AddToPlaylist";
+import CreatePlaylistModal from "./CreatePlaylistModal"
+import { useActions } from "../store/useActionStore";
 
 const ProblemTable = ({ problems }) => {
   const { authUser } = useAuthStore();
@@ -18,6 +22,11 @@ const ProblemTable = ({ problems }) => {
   const [difficulty, setDifficulty] = useState("ALL");
   const [selectedTag, setSelectedTag] = useState("ALL");
   const [currentPage, setCurrentPage] = useState(1);
+  const { onDeleteProblem } = useActions();
+  const { createPlaylist } = usePlaylistStore();
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isAddToPlaylistModalOpen, setIsAddToPlaylistModalOpen] = useState(false);
+  const [selectedProblemId, setSelectedProblemId] = useState(null);
 
   const allTags = useMemo(() => {
     if (!Array.isArray(problems)) return [];
@@ -74,7 +83,14 @@ const ProblemTable = ({ problems }) => {
     navigate(`/update-problem/${id}`);
   };
 
-  const handleAddToPlaylist = (id) => {};
+   const handleAddToPlaylist = (problemId) => {
+    setSelectedProblemId(problemId);
+    setIsAddToPlaylistModalOpen(true);
+  };
+
+   const handleCreatePlaylist = async (data) => {
+    await createPlaylist(data);
+  };
 
   // Create a set of solved problem IDs for quick lookup
   const solvedProblemIds = useMemo(() => {
@@ -83,12 +99,12 @@ const ProblemTable = ({ problems }) => {
   }, [solvedProblems]);
 
   return (
-  <div className="w-full min-h-screen p-10 mx-auto bg-[#dcfce7] dark:bg-[#03001C]">
+  <div className="w-full min-h-screen p-10 mx-auto bg-gradient-to-bl from-[#ffe4e6]  to-[#ccfbf1]  dark:bg-gradient-to-r dark:from-[#0f172a]  dark:to-[#334155]">
     
     {/* Header */}
     <div className="flex justify-between items-center mb-6">
       <h2 className="text-3xl font-bold flex items-center text-red-600 ">Problems</h2>
-      <button className="btn bg-red-700 text-white font-bold gap-2 hover:bg-red-800 transition">
+      <button className="btn bg-red-700 text-white font-bold gap-2 hover:bg-red-800 transition" onClick={() => setIsCreateModalOpen(true)}>
         <Plus className="w-5 h-5" aria-hidden="true" />
         Create Playlist
       </button>
@@ -133,7 +149,7 @@ const ProblemTable = ({ problems }) => {
 
     {/* Problems Table */}
     <div className="overflow-x-auto rounded-xl shadow-md">
-      <table className="table table-zebra table-lg bg-base-200 text-base-content">
+      <table className="table table-zebra table-lg bg-base-200 text-white">
         <thead className="bg-base-300 text-base font-semibold">
           <tr>
             <th>Solved</th>
@@ -157,7 +173,9 @@ const ProblemTable = ({ problems }) => {
                         <CheckCircle className="w-5 h-5 text-green-500" />
                       </div>
                     ) : (
-                      <div className="w-5 h-5"></div> 
+                      <div className="flex justify-center">
+                      <CircleDashed className="w-5 h-5 text-yellow-300"/>
+                      </div>
                     )}
                   </td>
                   <td>
@@ -173,7 +191,7 @@ const ProblemTable = ({ problems }) => {
                       {(problem.tags || []).map((tag, idx) => (
                         <span
                           key={idx}
-                          className="badge badge-outline badge-warning text-xs font-bold"
+                          className=" text-xs badge font-bold px-3 py-1 bg-red-600 text-white"
                         >
                           {tag}
                         </span>
@@ -251,6 +269,19 @@ const ProblemTable = ({ problems }) => {
         Next
       </button>
     </div>
+
+    {/* Modals */}
+      <CreatePlaylistModal
+        isOpen={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+        onSubmit={handleCreatePlaylist}
+      />
+      
+      <AddToPlaylistModal
+        isOpen={isAddToPlaylistModalOpen}
+        onClose={() => setIsAddToPlaylistModalOpen(false)}
+        problemId={selectedProblemId}
+      />
   </div>
 );
 

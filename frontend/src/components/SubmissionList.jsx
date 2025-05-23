@@ -21,7 +21,8 @@ const SubmissionList = ({ submissions, isLoading }) => {
       parseFloat(m.split(" ")[0])
     );
     if (memoryArray.length === 0) return 0;
-    return memoryArray.reduce((acc, curr) => acc + curr, 0) / memoryArray.length;
+    const mem = memoryArray.reduce((acc, curr) => acc + curr, 0) / memoryArray.length;
+    return parseFloat(mem.toFixed(3));
   };
 
   const calculateAverageTime = (timeData) => {
@@ -29,7 +30,8 @@ const SubmissionList = ({ submissions, isLoading }) => {
       parseFloat(t.split(" ")[0])
     );
     if (timeArray.length === 0) return 0;
-    return timeArray.reduce((acc, curr) => acc + curr, 0) / timeArray.length;
+    const timee = timeArray.reduce((acc, curr) => acc + curr, 0) / timeArray.length;
+    return parseFloat(timee.toFixed(3));
   };
 
   if (isLoading) {
@@ -50,13 +52,14 @@ const SubmissionList = ({ submissions, isLoading }) => {
 
   return (
     <div className="overflow-x-auto">
-      <table className="table w-full">
-        <thead>
-          <tr>
-            <th>Time</th>
+      <table className="table w-full border-2 border-black">
+        <thead className="text-black dark:text-slate-200  font-bold text-lg rounded-lg">
+          <tr className="flex">
+            <th className="flex items-center gap-2"><Calendar className="h-5 w-5" /> Time</th>
             <th>Language</th>
             <th>Status</th>
-            <th>Runtime</th>
+            <th className="flex items-center gap-2"><Clock className="h-5 w-5" /> Runtime</th>
+            <th className="flex items-center gap-2"><Memory className="h-5 w-5" /> Memory</th>
           </tr>
         </thead>
         <tbody>
@@ -65,13 +68,20 @@ const SubmissionList = ({ submissions, isLoading }) => {
             const avgTime = calculateAverageTime(sub.time);
 
             return (
-              <tr key={sub.id}>
+              <tr key={sub.id} className="flex">
                 <td>{new Date(sub.createdAt).toLocaleString()}</td>
                 <td>{sub.language}</td>
                 <td className={sub.status === "ACCEPTED" ? "text-success" : "text-error"}>
-                  {sub.status}
+                  <div className="flex items-center gap-2">
+                    {sub.status === "ACCEPTED" ? 
+                      <CheckCircle2 className="h-5 w-5" /> : 
+                      <XCircle className="h-5 w-5" />
+                    }
+                    {sub.status}
+                  </div>
                 </td>
-                <td>{sub.executionTime} ms</td>
+                <td>{avgTime} ms</td>
+                <td>{avgMemory}</td>
               </tr>
             );
           })}
