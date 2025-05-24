@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect } from "react";
 import { useAuthStore } from "../store/useAuthStore";
 import { Link, useNavigate } from "react-router-dom";
 import { useProblemStore } from "../store/useProblemStore";
-import { Bookmark, PencilIcon, TrashIcon, Plus, Code, CheckCircle, CircleDashed } from "lucide-react";
+import { Bookmark, PencilIcon, TrashIcon, Plus, Code, CheckCircle, CircleDashed, Building2 } from "lucide-react";
 import { usePlaylistStore } from "../store/usePlaylistStore";
 import AddToPlaylistModal from "./AddToPlaylist";
 import CreatePlaylistModal from "./CreatePlaylistModal"
@@ -21,6 +21,7 @@ const ProblemTable = ({ problems }) => {
   const [search, setSearch] = useState("");
   const [difficulty, setDifficulty] = useState("ALL");
   const [selectedTag, setSelectedTag] = useState("ALL");
+  const [selectedCompany, setSelectedCompany] = useState("ALL"); // Add company filter
   const [currentPage, setCurrentPage] = useState(1);
   const { onDeleteProblem } = useActions();
   const { createPlaylist } = usePlaylistStore();
@@ -32,10 +33,17 @@ const ProblemTable = ({ problems }) => {
     if (!Array.isArray(problems)) return [];
 
     const tagsSet = new Set();
-
     problems.forEach((p) => p.tags?.forEach((t) => tagsSet.add(t)));
-
     return Array.from(tagsSet);
+  }, [problems]);
+
+  // Get all companies from problems
+  const allCompanies = useMemo(() => {
+    if (!Array.isArray(problems)) return [];
+
+    const companiesSet = new Set();
+    problems.forEach((p) => p.companies?.forEach((c) => companiesSet.add(c)));
+    return Array.from(companiesSet);
   }, [problems]);
 
   const filteredProblems = useMemo(() => {
@@ -48,15 +56,21 @@ const ProblemTable = ({ problems }) => {
       )
       .filter((problem) =>
         selectedTag === "ALL" ? true : problem.tags?.includes(selectedTag)
+      )
+      // Add filter for companies
+      .filter((problem) =>
+        selectedCompany === "ALL" 
+          ? true 
+          : problem.companies?.includes(selectedCompany)
       );
-  }, [problems, search, difficulty, selectedTag]);
+  }, [problems, search, difficulty, selectedTag, selectedCompany]);
 
   const itemsPerPage = 10;
   const totalPages = Math.ceil(filteredProblems.length / itemsPerPage);
   const paginatedProblems = useMemo(() => {
     return filteredProblems.slice(
-      (currentPage - 1) * itemsPerPage, // 1 * 5 = 5 ( starting index = 0)
-      currentPage * itemsPerPage // 1 * 5  = (0 , 10)
+      (currentPage - 1) * itemsPerPage,
+      currentPage * itemsPerPage
     );
   }, [filteredProblems, currentPage]);
 
@@ -65,30 +79,25 @@ const ProblemTable = ({ problems }) => {
   const handleDelete = async (id) => {
     if (window.confirm("Are you sure you want to delete this problem?")) {
       try {
-        // Get the DeleteProblembyId function from the store
         const { DeleteProblembyId, getAllProblems } = useProblemStore.getState();
-        
-        // Call the delete function
         await DeleteProblembyId(id);
-        
-        // Refresh the problems list after successful deletion
         getAllProblems();
       } catch (error) {
         console.error("Error deleting problem:", error);
       }
     }
   };
-   const handleEdit = (id) => {
-    // Navigate to the edit problem page
+
+  const handleEdit = (id) => {
     navigate(`/update-problem/${id}`);
   };
 
-   const handleAddToPlaylist = (problemId) => {
+  const handleAddToPlaylist = (problemId) => {
     setSelectedProblemId(problemId);
     setIsAddToPlaylistModalOpen(true);
   };
 
-   const handleCreatePlaylist = async (data) => {
+  const handleCreatePlaylist = async (data) => {
     await createPlaylist(data);
   };
 
@@ -120,31 +129,47 @@ const ProblemTable = ({ problems }) => {
         onChange={(e) => setSearch(e.target.value)}
       />
 
-      <select
-        className="select select-bordered rounded-md font-bold bg-blue-700 text-white dark:bg-blue-800"
-        value={difficulty}
-        onChange={(e) => setDifficulty(e.target.value)}
-      >
-        <option value="ALL">All Difficulties</option>
-        {difficulties.map((diff) => (
-          <option key={diff} value={diff}>
-            {diff.charAt(0).toUpperCase() + diff.slice(1).toLowerCase()}
-          </option>
-        ))}
-      </select>
+      <div className="flex gap-2">
+        <select
+          className="select select-bordered rounded-md font-bold bg-blue-700 text-white dark:bg-blue-800"
+          value={difficulty}
+          onChange={(e) => setDifficulty(e.target.value)}
+        >
+          <option value="ALL">All Difficulties</option>
+          {difficulties.map((diff) => (
+            <option key={diff} value={diff}>
+              {diff.charAt(0).toUpperCase() + diff.slice(1).toLowerCase()}
+            </option>
+          ))}
+        </select>
 
-      <select
-        className="select select-bordered rounded-md font-bold bg-blue-700 text-white dark:bg-blue-800"
-        value={selectedTag}
-        onChange={(e) => setSelectedTag(e.target.value)}
-      >
-        <option value="ALL">All Tags</option>
-        {allTags.map((tag) => (
-          <option key={tag} value={tag}>
-            {tag}
-          </option>
-        ))}
-      </select>
+        <select
+          className="select select-bordered rounded-md font-bold bg-blue-700 text-white dark:bg-blue-800"
+          value={selectedTag}
+          onChange={(e) => setSelectedTag(e.target.value)}
+        >
+          <option value="ALL">All Tags</option>
+          {allTags.map((tag) => (
+            <option key={tag} value={tag}>
+              {tag}
+            </option>
+          ))}
+        </select>
+
+        {/* Add company filter */}
+        <select
+          className="select select-bordered rounded-md font-bold bg-blue-700 text-white dark:bg-blue-800"
+          value={selectedCompany}
+          onChange={(e) => setSelectedCompany(e.target.value)}
+        >
+          <option value="ALL">All Companies</option>
+          {allCompanies.map((company) => (
+            <option key={company} value={company}>
+              {company}
+            </option>
+          ))}
+        </select>
+      </div>
     </div>
 
     {/* Problems Table */}
@@ -155,6 +180,7 @@ const ProblemTable = ({ problems }) => {
             <th>Solved</th>
             <th>Title</th>
             <th>Tags</th>
+            <th>Companies</th>
             <th>Difficulty</th>
             <th>Actions</th>
           </tr>
@@ -191,11 +217,28 @@ const ProblemTable = ({ problems }) => {
                       {(problem.tags || []).map((tag, idx) => (
                         <span
                           key={idx}
-                          className=" text-xs badge font-bold px-3 py-1 bg-red-600 text-white"
+                          className="text-xs badge font-bold px-3 py-1 bg-red-600 text-white"
                         >
                           {tag}
                         </span>
                       ))}
+                    </div>
+                  </td>
+                  {/* Add Companies Column */}
+                  <td>
+                    <div className="flex flex-wrap gap-1">
+                      {(problem.companies || []).map((company, idx) => (
+                        <span
+                          key={idx}
+                          className="text-xs badge font-bold px-3 py-1 bg-green-600 text-white flex items-center gap-1"
+                        >
+                          <Building2 className="w-3 h-3" />
+                          {company}
+                        </span>
+                      ))}
+                      {(!problem.companies || problem.companies.length === 0) && (
+                        <span className="text-xs text-gray-500">None</span>
+                      )}
                     </div>
                   </td>
                   <td>
@@ -240,7 +283,7 @@ const ProblemTable = ({ problems }) => {
             })
           ) : (
             <tr>
-              <td colSpan={5} className="text-center py-6 text-gray-500">
+              <td colSpan={6} className="text-center py-6 text-gray-500">
                 No problems found.
               </td>
             </tr>
@@ -259,11 +302,11 @@ const ProblemTable = ({ problems }) => {
         Prev
       </button>
       <span className="btn btn-sm pointer-events-none select-none">
-        {currentPage} / {totalPages}
+        {currentPage} / {totalPages || 1}
       </span>
       <button
         className="btn btn-sm bg-gray-200 text-black dark:bg-gray-700 dark:text-white border border-black disabled:opacity-50 disabled:cursor-not-allowed"
-        disabled={currentPage === totalPages}
+        disabled={currentPage === totalPages || totalPages === 0}
         onClick={() => setCurrentPage((prev) => prev + 1)}
       >
         Next
@@ -271,17 +314,17 @@ const ProblemTable = ({ problems }) => {
     </div>
 
     {/* Modals */}
-      <CreatePlaylistModal
-        isOpen={isCreateModalOpen}
-        onClose={() => setIsCreateModalOpen(false)}
-        onSubmit={handleCreatePlaylist}
-      />
-      
-      <AddToPlaylistModal
-        isOpen={isAddToPlaylistModalOpen}
-        onClose={() => setIsAddToPlaylistModalOpen(false)}
-        problemId={selectedProblemId}
-      />
+    <CreatePlaylistModal
+      isOpen={isCreateModalOpen}
+      onClose={() => setIsCreateModalOpen(false)}
+      onSubmit={handleCreatePlaylist}
+    />
+    
+    <AddToPlaylistModal
+      isOpen={isAddToPlaylistModalOpen}
+      onClose={() => setIsAddToPlaylistModalOpen(false)}
+      problemId={selectedProblemId}
+    />
   </div>
 );
 

@@ -40,4 +40,32 @@ const userLoginValidator = () => {
   ];
 };
 
+export const userUpdateValidator = () => {
+  return [
+    body('name')
+      .optional()
+      .trim()
+      .isLength({ min: 3 })
+      .withMessage('Name must be at least 3 characters long'),
+
+    body('email')
+      .optional()
+      .isEmail()
+      .withMessage('Please enter a valid email'),
+
+    body('bio').optional().trim(),
+
+    body('githubUrl').optional().trim(),
+
+    body('linkedinUrl').optional().trim(),
+
+    body('twitterUrl').optional().trim(),
+
+    body('password')
+      .optional()
+      .isLength({ min: 6 })
+      .withMessage('Password must be at least 6 characters long'),
+  ];
+};
+
 export { userRegistrationValidator, userLoginValidator };

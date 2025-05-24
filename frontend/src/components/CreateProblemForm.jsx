@@ -11,6 +11,7 @@ import {
   BookOpen,
   CheckCircle2,
   Download,
+  Building2,
 } from "lucide-react";
 import Editor from "@monaco-editor/react";
 import { useState, useEffect } from 'react';
@@ -18,11 +19,14 @@ import { axiosInstance } from "../lib/axios";
 import toast from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
 
+// Update the Zod schema to include the companies field
 const problemSchema = z.object({
   title: z.string().min(3, "Title must be at least 3 characters"),
   description: z.string().min(10, "Description must be at least 10 characters"),
   difficulty: z.enum(["EASY", "MEDIUM", "HARD"]),
   tags: z.array(z.string()).min(1, "At least one tag is required"),
+  // Add companies field as an array of strings
+  companies: z.array(z.string()).optional().default([]),
   constraints: z.string().min(1, "Constraints are required"),
   hints: z.string().optional(),
   editorial: z.string().optional(),
@@ -70,7 +74,7 @@ const problemSchema = z.object({
   }),
 });
 
-
+// Update the sample data to include companies
 const sampledpData = {
   title: "Climbing Stairs",
   category: "dp", // Dynamic Programming
@@ -78,6 +82,7 @@ const sampledpData = {
     "You are climbing a staircase. It takes n steps to reach the top. Each time you can either climb 1 or 2 steps. In how many distinct ways can you climb to the top?",
   difficulty: "EASY",
   tags: ["Dynamic Programming", "Math", "Memoization"],
+  companies: ["Amazon", "Microsoft", "Google"], // Add companies
   constraints: "1 <= n <= 45",
   hints:
     "To reach the nth step, you can either come from the (n-1)th step or the (n-2)th step.",
@@ -399,6 +404,7 @@ const sampleStringProblem = {
     "A phrase is a palindrome if, after converting all uppercase letters into lowercase letters and removing all non-alphanumeric characters, it reads the same forward and backward. Alphanumeric characters include letters and numbers. Given a string s, return true if it is a palindrome, or false otherwise.",
   difficulty: "EASY",
   tags: ["String", "Two Pointers"],
+  companies: ["Facebook", "Microsoft", "Apple"], // Add companies
   constraints:
     "1 <= s.length <= 2 * 10^5\ns consists only of printable ASCII characters.",
   hints:
@@ -691,6 +697,7 @@ const CreateProblemForm = () => {
       defaultValues:{
         testCases: [{ input: "", output: "" }],
         tags: [""],
+        companies: [""], // Add companies default value
         examples: {
           JAVASCRIPT: { input: "", output: "", explanation: "" },
           PYTHON: { input: "", output: "", explanation: "" },
@@ -710,6 +717,17 @@ const CreateProblemForm = () => {
           CPP: "// Add your reference solution here",
         },
       }
+    });
+
+    // Add companies field array control
+    const {
+      fields: companyFields,
+      append: appendCompany,
+      remove: removeCompany,
+      replace: replaceCompanies,
+    } = useFieldArray({
+      control,
+      name: "companies",
     });
 
     const {
@@ -743,6 +761,8 @@ const CreateProblemForm = () => {
           ...value,
           // Rename testCases to testcases (lowercase) for backend consistency
           testcases: value.testCases,
+          // Make sure empty companies are filtered out
+          companies: value.companies.filter(company => company.trim() !== ""),
           referenceSolutions: Object.entries(value.referenceSolutions).map(
             ([language, codeSolution]) => ({
               language,
@@ -775,6 +795,7 @@ const CreateProblemForm = () => {
       
       replaceTags(sampleData.tags.map((tag) => tag));
       replaceTestCases(sampleData.testCases.map((tc) => tc));
+      replaceCompanies(sampleData.companies.map((company) => company)); // Add companies replacement
 
       // Reset the form with sample data
       reset(sampleData);
@@ -942,6 +963,48 @@ const CreateProblemForm = () => {
                     </span>
                   </div>
                 )}
+              </div>
+
+              {/* Add Companies Section */}
+              <div className={`card ${isDark ? 'bg-gray-700' : 'bg-base-200'} p-4 md:p-6 shadow-md`}>
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className={`text-lg md:text-xl font-semibold flex items-center gap-2 ${isDark ? 'text-gray-100' : ''}`}>
+                    <Building2 className={`w-5 h-5 ${isDark ? 'text-green-300' : 'text-green-600'}`} />
+                    Companies
+                  </h3>
+                  <button
+                    type="button"
+                    className={`btn ${isDark ? 'bg-green-600 hover:bg-green-500 text-white' : 'btn-success'} btn-sm`}
+                    onClick={() => appendCompany("")}
+                  >
+                    <Plus className="w-4 h-4 mr-1" /> Add Company
+                  </button>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {companyFields.map((field, index) => (
+                    <div key={field.id} className="flex gap-2 items-center">
+                      <input
+                        type="text"
+                        className={`input input-bordered flex-1 ${
+                          isDark ? 'bg-gray-800 border-gray-600 text-white' : ''
+                        }`}
+                        {...register(`companies.${index}`)}
+                        placeholder="Enter company name"
+                      />
+                      <button
+                        type="button"
+                        className="btn btn-ghost btn-square btn-sm"
+                        onClick={() => removeCompany(index)}
+                        disabled={companyFields.length === 1}
+                      >
+                        <Trash2 className={`w-4 h-4 ${isDark ? 'text-red-400' : 'text-error'}`} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+                <div className="mt-3 text-sm text-gray-500 dark:text-gray-400">
+                  Add companies that have asked this problem in their interviews.
+                </div>
               </div>
 
               {/* Test Cases */}

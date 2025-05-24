@@ -123,7 +123,12 @@ exports.Prisma.UserScalarFieldEnum = {
   email: 'email',
   password: 'password',
   role: 'role',
-  image: 'image',
+  avatar: 'avatar',
+  bio: 'bio',
+  githubUrl: 'githubUrl',
+  linkedinUrl: 'linkedinUrl',
+  twitterUrl: 'twitterUrl',
+  league: 'league',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 };
@@ -134,6 +139,7 @@ exports.Prisma.ProblemScalarFieldEnum = {
   description: 'description',
   difficulty: 'difficulty',
   tags: 'tags',
+  companies: 'companies',
   userId: 'userId',
   examples: 'examples',
   constraints: 'constraints',
@@ -231,6 +237,13 @@ exports.Prisma.JsonNullValueFilter = {
 exports.UserRole = exports.$Enums.UserRole = {
   USER: 'USER',
   ADMIN: 'ADMIN'
+};
+
+exports.League = exports.$Enums.League = {
+  BRONZE: 'BRONZE',
+  SILVER: 'SILVER',
+  GOLD: 'GOLD',
+  PLATINUM: 'PLATINUM'
 };
 
 exports.Difficulty = exports.$Enums.Difficulty = {

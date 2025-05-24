@@ -80,5 +80,26 @@ export const useAuthStore = create((set, get) => ({
       console.log("Error logging out", error);
       toast.error("Error logging out");
     }
-  }
+  },
+
+  // Add or modify the updateProfile function
+  updateProfile: (userData) => {
+    try {
+      // Get current user data
+      const currentUser = get().authUser;
+
+      if (!currentUser) return;
+
+      // Update only the provided fields
+      set({
+        authUser: {
+          ...currentUser,
+          ...userData,
+        },
+      });
+    } catch (error) {
+      console.log("Error updating profile in store", error);
+      toast.error("Error updating profile");
+    }
+  },
 }));

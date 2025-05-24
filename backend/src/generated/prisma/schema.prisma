@@ -9,12 +9,17 @@ datasource db {
 }
 
 model User {
-  id            String          @id @default(uuid())
-  name          String?
+  id            String          @id @default(cuid())
+  name          String
   email         String          @unique
   password      String
   role          UserRole        @default(USER)
-  image         String?
+  avatar        String?
+  bio           String?         @db.Text
+  githubUrl     String?
+  linkedinUrl   String?
+  twitterUrl    String?
+  league        League          @default(BRONZE) // New field
   createdAt     DateTime        @default(now())
   updatedAt     DateTime        @updatedAt
   playlists     Playlist[]
@@ -29,6 +34,7 @@ model Problem {
   description        String
   difficulty         Difficulty
   tags               String[]
+  companies          String[] // ✅ New field: companies that asked the question
   userId             String
   examples           Json
   constraints        String
@@ -130,4 +136,12 @@ enum Difficulty {
   EASY
   MEDIUM
   HARD
+}
+
+// Add this enum for user leagues
+enum League {
+  BRONZE
+  SILVER
+  GOLD
+  PLATINUM
 }

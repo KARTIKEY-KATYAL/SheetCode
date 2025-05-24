@@ -1,12 +1,11 @@
 import React, { useEffect } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
-
+import Sheets from "./page/Sheets";
 import HomePage from "./page/HomePage";
 import LoginPage from "./page/LoginPage";
 import SignUpPage from "./page/SignUpPage";
 import Problems from "./page/Problems";
-import Sheets from "./page/Sheets";
 import Profile from "./page/Profile";
 import { useAuthStore } from "./store/useAuthStore";
 import { Loader } from "lucide-react";
@@ -57,6 +56,7 @@ const App = () => {
           <Route path="/sheets" element={
             authUser ? <Sheets /> : <Navigate to="/login" />
           } />
+         
           <Route path="/profile" element={
             authUser ? <Profile /> : <Navigate to="/login" />
           } />

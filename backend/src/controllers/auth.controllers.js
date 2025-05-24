@@ -91,8 +91,23 @@ export const LoginUser = asyncHandler(async (req, res) => {
       maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
     });
 
+    // When returning user data, include the league field
+    const userData = {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      avatar: user.avatar,
+      bio: user.bio,
+      githubUrl: user.githubUrl,
+      linkedinUrl: user.linkedinUrl,
+      twitterUrl: user.twitterUrl,
+      league: user.league, // Add this line
+      createdAt: user.createdAt
+    };
+
     return res.status(200).json(
-      new ApiResponse(200, user, "User Logged In")
+      new ApiResponse(200, userData, "User Logged In")
     )
   } catch (error) {
     console.error("Register error:", error);
@@ -118,4 +133,93 @@ export const CheckUser = asyncHandler(async (req, res) => {
   res.status(200).json(
     new ApiResponse(200, req.user, "User Found"),
   );
+});
+export const UpdateUser = asyncHandler(async (req, res) => {
+  const userId = req.user.id;
+  
+  try {
+    // Check if user exists
+    const existingUser = await db.user.findUnique({
+      where: { id: userId }
+    });
+    
+    if (!existingUser) {
+      return res.status(404).json(new ApiError(404, 'User not found'));
+    }
+    
+    // Extract fields from req.body
+    const {
+      name,
+      email,
+      bio,
+      githubUrl,
+      linkedinUrl,
+      twitterUrl,
+      password,
+    } = req.body;
+    
+    // Check for email uniqueness if updating email
+    if (email && email !== existingUser.email) {
+      const isEmailTaken = await db.user.findUnique({
+        where: { email }
+      });
+      
+      if (isEmailTaken) {
+        return res.status(400).json(new ApiError(400, 'Email already in use'));
+      }
+    }
+    
+    // Prepare update data - only include fields that are provided
+    const updateData = {};
+    
+    if (name) updateData.name = name;
+    if (email) updateData.email = email;
+    if (bio !== undefined) updateData.bio = bio;
+    if (githubUrl !== undefined) updateData.githubUrl = githubUrl;
+    if (linkedinUrl !== undefined) updateData.linkedinUrl = linkedinUrl;
+    if (twitterUrl !== undefined) updateData.twitterUrl = twitterUrl;
+    
+    // Handle password update if provided
+    if (password) {
+      const hashedPassword = await bcrypt.hash(password, 10);
+      updateData.password = hashedPassword;
+    }
+    
+    // Handle avatar upload if provided
+    if (req.files && req.files.avatar && req.files.avatar.length > 0) {
+      // Delete existing avatar from cloudinary if exists
+      if (existingUser.avatar && existingUser.avatar.public_id) {
+        await cloudinary.uploader.destroy(existingUser.avatar.public_id);
+      }
+      
+      // Upload new avatar
+      const avatarFile = req.files.avatar[0];
+      const avatarResult = await uploadOnCloudinary(avatarFile.path, "avatars");
+      
+      if (avatarResult) {
+        updateData.avatar = avatarResult.url;
+      }
+    }
+    
+    // Update user in database
+    const updatedUser = await db.user.update({
+      where: { id: userId },
+      data: updateData
+    });
+    
+    // Remove password from response
+    const userToReturn = { ...updatedUser };
+    delete userToReturn.password;
+    
+    // Return successful response
+    return res.status(200).json(
+      new ApiResponse(200, userToReturn, 'User updated successfully')
+    );
+    
+  } catch (error) {
+    console.error('Error updating user:', error);
+    return res.status(500).json(
+      new ApiError(500, 'Something went wrong while updating user')
+    );
+  }
 });

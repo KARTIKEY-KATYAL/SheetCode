@@ -18,6 +18,7 @@ export const createProblem = asyncHandler(async (req, res) => {
     description,
     difficulty,
     tags,
+    companies, // Add companies to destructuring
     examples,
     constraints,
     hints,
@@ -79,6 +80,7 @@ export const createProblem = asyncHandler(async (req, res) => {
           userId: req.user.id,
           difficulty,
           tags,
+          companies, // Add companies to the database creation
           examples,
           constraints,
           hints,
@@ -88,6 +90,25 @@ export const createProblem = asyncHandler(async (req, res) => {
           referenceSolutions,
         },
       });
+      // Function to determine league based on problems solved count
+      const determineUserLeague = (solvedCount) => {
+        if (solvedCount >= 1000) return 'PLATINUM';
+        if (solvedCount >= 700) return 'GOLD';
+        if (solvedCount >= 100) return 'SILVER';
+        return 'BRONZE';
+      };
+
+      // Logic to update user's league after successful problem submission
+      const userId = req.user.id;
+      const solvedCount = await db.problemSolved.count({ where: { userId } });
+      const currentLeague = determineUserLeague(solvedCount);
+
+      // Update user's league if needed
+      await db.user.update({
+        where: { id: userId },
+        data: { league: currentLeague },
+      });
+
       return res
         .status(201)
         .json(new ApiResponse(201, newProblem, 'Problem Created Successfully'));
@@ -159,6 +180,7 @@ export const UpdateProblembyId = asyncHandler(async (req, res) => {
       description,
       difficulty,
       tags,
+      companies, // Add companies in destructuring
       examples,
       constraints,
       hints,
@@ -257,6 +279,7 @@ export const UpdateProblembyId = asyncHandler(async (req, res) => {
     if (description) updateData.description = description;
     if (difficulty) updateData.difficulty = difficulty;
     if (tags) updateData.tags = tags;
+    if (companies) updateData.companies = companies; // Add companies to updateData
     if (examples) updateData.examples = examples;
     if (constraints) updateData.constraints = constraints;
     if (hints) updateData.hints = hints;

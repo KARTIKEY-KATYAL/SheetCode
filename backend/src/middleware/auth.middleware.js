@@ -22,10 +22,15 @@ export const isLoggedIn = asyncHandler(async (req, res, next) => {
     },
     select: {
       id: true,
-      image: true,
+      avatar: true,
       name: true,
       email: true,
       role: true,
+      bio: true,
+      githubUrl: true,
+      linkedinUrl: true,
+      twitterUrl: true,
+      createdAt: true
     },
   });
 

@@ -118,3 +118,36 @@ export const getProblemCount = asyncHandler(async (req, res) => {
       .json(new ApiError(500, 'Error while getting submission count'));
   }
 });
+
+// Add this logic where you handle successful submissions:
+
+// After a successful submission that marks a problem as solved:
+export const handleSuccessfulSubmission = async (req, res) => {
+  try {
+    // ... existing submission handling code ...
+
+    // After marking the problem as solved:
+    const userId = req.user.id;
+
+    // Count total solved problems for this user
+    const solvedCount = await db.problemSolved.count({
+      where: { userId },
+    });
+
+    // Determine appropriate league based on solved count
+    let newLeague = 'BRONZE';
+    if (solvedCount >= 1000) newLeague = 'PLATINUM';
+    else if (solvedCount >= 700) newLeague = 'GOLD';
+    else if (solvedCount >= 100) newLeague = 'SILVER';
+
+    // Update user's league
+    await db.user.update({
+      where: { id: userId },
+      data: { league: newLeague },
+    });
+
+    // ... rest of the submission success handling ...
+  } catch (error) {
+    // Error handling...
+  }
+};
