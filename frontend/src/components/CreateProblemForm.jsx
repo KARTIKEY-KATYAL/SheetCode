@@ -2,6 +2,10 @@ import React from 'react'
 import { useForm, useFieldArray, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { useState, useEffect } from 'react';
+import { useNavigate, useParams } from "react-router-dom";
+import { useProblemStore } from "../store/useProblemStore";
+import toast from "react-hot-toast";
 import {
   Plus,
   Trash2,
@@ -14,10 +18,7 @@ import {
   Building2,
 } from "lucide-react";
 import Editor from "@monaco-editor/react";
-import { useState, useEffect } from 'react';
 import { axiosInstance } from "../lib/axios";
-import toast from "react-hot-toast";
-import { useNavigate } from "react-router-dom";
 
 // Update the Zod schema to include the companies field
 const problemSchema = z.object({
@@ -675,8 +676,19 @@ int main() {
 };
 
 const CreateProblemForm = () => {
+    const { id } = useParams();
+    const isEditing = Boolean(id);
+    const navigate = useNavigate();
+    const { 
+      getProblemById, 
+      updateProblem, 
+      currentProblem, 
+      clearCurrentProblem 
+    } = useProblemStore();
+    
     const [sampleType, setSampleType] = useState("DP");
-    const navigation = useNavigate();
+    const [isLoading, setIsLoading] = useState(false);
+    const [isDataLoaded, setIsDataLoaded] = useState(false);
     const [isDark, setIsDark] = useState(
       window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
     );
@@ -692,12 +704,19 @@ const CreateProblemForm = () => {
       return () => mediaQuery.removeEventListener('change', handleChange);
     }, []);
 
-    const {register, control, handleSubmit, reset, formState:{errors}} = useForm({
+    // Form setup with proper default values
+    const {register, control, handleSubmit, reset, setValue, watch, formState:{errors}} = useForm({
       resolver: zodResolver(problemSchema),
-      defaultValues:{
-        testCases: [{ input: "", output: "" }],
+      defaultValues: {
+        title: "",
+        description: "",
+        difficulty: "EASY",
         tags: [""],
-        companies: [""], // Add companies default value
+        companies: [""],
+        constraints: "",
+        hints: "",
+        editorial: "",
+        testCases: [{ input: "", output: "" }],
         examples: {
           JAVASCRIPT: { input: "", output: "", explanation: "" },
           PYTHON: { input: "", output: "", explanation: "" },
@@ -719,7 +738,7 @@ const CreateProblemForm = () => {
       }
     });
 
-    // Add companies field array control
+    // Field arrays
     const {
       fields: companyFields,
       append: appendCompany,
@@ -750,19 +769,131 @@ const CreateProblemForm = () => {
       name: "tags",
     });
 
-    const [isLoading, setIsLoading] = useState(false);
+    // Load problem data when editing
+    useEffect(() => {
+      if (isEditing && id && !isDataLoaded) {
+        const loadProblem = async () => {
+          try {
+            setIsLoading(true);
+            console.log("Loading problem with ID:", id);
+            
+            const problem = await getProblemById(id);
+            console.log("Loaded problem data:", problem);
+            
+            if (problem) {
+              // Prepare tags array - ensure it's not empty
+              const tagsArray = problem.tags && problem.tags.length > 0 ? problem.tags : [""];
+              
+              // Prepare companies array - ensure it's not empty
+              const companiesArray = problem.companies && problem.companies.length > 0 ? problem.companies : [""];
+              
+              // Prepare test cases array
+              const testCasesArray = problem.testcases && problem.testcases.length > 0 ? problem.testcases : [{ input: "", output: "" }];
+              
+              // Prepare reference solutions
+              let referenceSolutions = {
+                JAVASCRIPT: "",
+                PYTHON: "",
+                JAVA: "",
+                CPP: "",
+              };
+              
+              if (problem.referenceSolutions && Array.isArray(problem.referenceSolutions)) {
+                problem.referenceSolutions.forEach(ref => {
+                  if (ref.language && ref.codeSolution) {
+                    referenceSolutions[ref.language] = ref.codeSolution;
+                  }
+                });
+              }
 
+              // Prepare examples
+              const examples = problem.examples || {
+                JAVASCRIPT: { input: "", output: "", explanation: "" },
+                PYTHON: { input: "", output: "", explanation: "" },
+                JAVA: { input: "", output: "", explanation: "" },
+                CPP: { input: "", output: "", explanation: "" },
+              };
+
+              // Prepare code snippets
+              const codeSnippets = problem.codeSnippets || {
+                JAVASCRIPT: "function solution() {\n  // Write your code here\n}",
+                PYTHON: "def solution():\n    # Write your code here\n    pass",
+                JAVA: "public class Solution {\n    public static void main(String[] args) {\n        // Write your code here\n    }\n}",
+                CPP: "#include <iostream>\nusing namespace std;\n\nclass Solution {\npublic:\n    void solve() {\n        // Write your code here\n    }\n};\n\nint main() {\n    Solution solution;\n    solution.solve();\n    return 0;\n}",
+              };
+
+              // First replace field arrays
+              replaceTags(tagsArray);
+              replaceCompanies(companiesArray);
+              replaceTestCases(testCasesArray);
+
+              // Then set individual form values
+              setValue("title", problem.title || "");
+              setValue("description", problem.description || "");
+              setValue("difficulty", problem.difficulty || "EASY");
+              setValue("constraints", problem.constraints || "");
+              setValue("hints", problem.hints || "");
+              setValue("editorial", problem.editorial || "");
+              
+              // Set examples for each language
+              Object.keys(examples).forEach(language => {
+                setValue(`examples.${language}.input`, examples[language]?.input || "");
+                setValue(`examples.${language}.output`, examples[language]?.output || "");
+                setValue(`examples.${language}.explanation`, examples[language]?.explanation || "");
+              });
+
+              // Set code snippets for each language
+              Object.keys(codeSnippets).forEach(language => {
+                setValue(`codeSnippets.${language}`, codeSnippets[language] || "");
+              });
+
+              // Set reference solutions for each language
+              Object.keys(referenceSolutions).forEach(language => {
+                setValue(`referenceSolutions.${language}`, referenceSolutions[language] || "");
+              });
+
+              setIsDataLoaded(true);
+              console.log("Form data loaded successfully");
+            }
+          } catch (error) {
+            console.error("Error loading problem:", error);
+            toast.error("Failed to load problem data");
+            navigate("/problems");
+          } finally {
+            setIsLoading(false);
+          }
+        };
+
+        loadProblem();
+      }
+    }, [isEditing, id, isDataLoaded, getProblemById, setValue, replaceTags, replaceCompanies, replaceTestCases, navigate]);
+
+    // Cleanup when component unmounts or when switching between create/edit modes
+    useEffect(() => {
+      return () => {
+        if (isEditing) {
+          clearCurrentProblem();
+        }
+        setIsDataLoaded(false);
+      };
+    }, [isEditing, clearCurrentProblem]);
+
+    // Reset isDataLoaded when switching between problems
+    useEffect(() => {
+      setIsDataLoaded(false);
+    }, [id]);
+
+    // Update the submit function
     const onSubmit = async (value) => {
       try {
         setIsLoading(true);
+        console.log("Submitting form data:", value);
         
-        // Make sure testCases is properly renamed to match what the backend expects
         const transformedData = {
           ...value,
-          // Rename testCases to testcases (lowercase) for backend consistency
           testcases: value.testCases,
-          // Make sure empty companies are filtered out
           companies: value.companies.filter(company => company.trim() !== ""),
+          tags: value.tags.filter(tag => tag.trim() !== ""),
           referenceSolutions: Object.entries(value.referenceSolutions).map(
             ([language, codeSolution]) => ({
               language,
@@ -771,19 +902,23 @@ const CreateProblemForm = () => {
           )
         };
         
-        // Delete the original testCases to avoid duplication
         delete transformedData.testCases;
         
-        const res = await axiosInstance.post('/problems/create-problem', transformedData);
-        console.log(res.data);
-        toast.success(res.data.message || "Problem created successfully");
-        reset(); // Reset the form after successful creation
-        navigation("/problems"); // Redirect to problems list
+        if (isEditing) {
+          const res = await updateProblem(id, transformedData);
+          toast.success("Problem updated successfully");
+        } else {
+          const res = await axiosInstance.post('/problems/create-problem', transformedData);
+          toast.success(res.data.message || "Problem created successfully");
+        }
+        
+        navigate("/problems");
       } catch (error) {
+        console.error("Submit error:", error);
         toast.error(
           error?.response?.data?.message ||
           error?.message ||
-          "Failed to create problem"
+          `Failed to ${isEditing ? 'update' : 'create'} problem`
         );
       } finally {
         setIsLoading(false);
@@ -801,6 +936,16 @@ const CreateProblemForm = () => {
       reset(sampleData);
     };
 
+    // Show loading spinner while loading problem data
+    if (isEditing && isLoading && !isDataLoaded) {
+      return (
+        <div className="flex items-center justify-center h-screen">
+          <div className="loading loading-spinner loading-lg"></div>
+          <span className="ml-2">Loading problem data...</span>
+        </div>
+      );
+    }
+
     return (
       <div className='container mx-auto py-8 px-4 w-full'>
         <div className={`card ${isDark ? 'bg-gray-800 text-gray-100' : 'bg-base-100'} shadow-xl`}>
@@ -808,41 +953,44 @@ const CreateProblemForm = () => {
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 md:mb-8 pb-4 border-b border-opacity-20">
               <h2 className="card-title text-2xl md:text-3xl flex items-center gap-3">
                 <FileText className={`w-6 h-6 md:w-8 md:h-8 ${isDark ? 'text-blue-400' : 'text-primary'}`} />
-                Create Problem
+                {isEditing ? 'Edit Problem' : 'Create Problem'}
               </h2>
 
-              <div className="flex flex-col md:flex-row gap-3 mt-4 md:mt-0">
-                <div className="join">
+              {/* Only show sample data buttons when creating new problem */}
+              {!isEditing && (
+                <div className="flex flex-col md:flex-row gap-3 mt-4 md:mt-0">
+                  <div className="join">
+                    <button
+                      type="button"
+                      className={`btn join-item ${
+                        sampleType === "DP" ? `${isDark ? 'bg-blue-700 text-white' : 'btn-active'}` : 
+                        `${isDark ? 'bg-gray-700 hover:bg-gray-600' : ''}`
+                      }`}
+                      onClick={() => setSampleType("DP")}
+                    >
+                      DP Problem
+                    </button>
+                    <button
+                      type="button"
+                      className={`btn join-item ${
+                        sampleType === "string" ? `${isDark ? 'bg-blue-700 text-white' : 'btn-active'}` : 
+                        `${isDark ? 'bg-gray-700 hover:bg-gray-600' : ''}`
+                      }`}
+                      onClick={() => setSampleType("string")}
+                    >
+                      String Problem
+                    </button>
+                  </div>
                   <button
                     type="button"
-                    className={`btn join-item ${
-                      sampleType === "DP" ? `${isDark ? 'bg-blue-700 text-white' : 'btn-active'}` : 
-                      `${isDark ? 'bg-gray-700 hover:bg-gray-600' : ''}`
-                    }`}
-                    onClick={() => setSampleType("DP")}
+                    className={`btn ${isDark ? 'bg-purple-700 hover:bg-purple-600 text-white' : 'btn-secondary'} gap-2`}
+                    onClick={loadSampleData}
                   >
-                    DP Problem
-                  </button>
-                  <button
-                    type="button"
-                    className={`btn join-item ${
-                      sampleType === "string" ? `${isDark ? 'bg-blue-700 text-white' : 'btn-active'}` : 
-                      `${isDark ? 'bg-gray-700 hover:bg-gray-600' : ''}`
-                    }`}
-                    onClick={() => setSampleType("string")}
-                  >
-                    String Problem
+                    <Download className="w-4 h-4" />
+                    Load Sample
                   </button>
                 </div>
-                <button
-                  type="button"
-                  className={`btn ${isDark ? 'bg-purple-700 hover:bg-purple-600 text-white' : 'btn-secondary'} gap-2`}
-                  onClick={loadSampleData}
-                >
-                  <Download className="w-4 h-4" />
-                  Load Sample
-                </button>
-              </div>
+              )}
             </div>
 
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
@@ -1316,10 +1464,10 @@ const CreateProblemForm = () => {
                 </div>
               </div>
 
-              <div className={`card-actions justify-end pt-4 border-t ${isDark ? 'border-gray-600' : 'border-gray-200'}`}>
+              <div className={`card-actions justify-end pt-4 border-t border-gray-200 dark:border-gray-700`}>
                 <button 
                   type="submit" 
-                  className={`btn ${isDark ? 'bg-blue-600 hover:bg-blue-500 text-white' : 'btn-primary'} btn-lg gap-2`}
+                  className="btn bg-red-600 hover:bg-red-700 text-white dark:bg-red-700 dark:hover:bg-red-800 btn-lg gap-2"
                   disabled={isLoading}
                 >
                   {isLoading ? (
@@ -1327,7 +1475,7 @@ const CreateProblemForm = () => {
                   ) : (
                     <>
                       <CheckCircle2 className="w-5 h-5" />
-                      Create Problem
+                      {isEditing ? 'Update Problem' : 'Create Problem'}
                     </>
                   )}
                 </button>

@@ -2,12 +2,13 @@ import { create } from "zustand";
 import { axiosInstance } from "../lib/axios";
 import { toast } from "react-hot-toast";
 
-export const useProblemStore = create((set, get) => ({  // Add the get parameter here
+export const useProblemStore = create((set, get) => ({
   problems: [],
   problem: null,
   solvedProblems: [],
   isProblemsLoading: false,
   isProblemLoading: false,
+  currentProblem: null,
 
   getAllProblems: async () => {
     try {
@@ -16,7 +17,6 @@ export const useProblemStore = create((set, get) => ({  // Add the get parameter
       const res = await axiosInstance.get("/problems/get-all-problems");
       set({ problems: res.data });
       
-      // Use get() to access the getSolvedProblemByUser function
       await get().getSolvedProblemByUser();
     } catch (error) {
       console.log("Error getting all problems", error);
@@ -28,15 +28,18 @@ export const useProblemStore = create((set, get) => ({  // Add the get parameter
 
   getProblemById: async (id) => {
     try {
+      console.log("Fetching problem with ID:", id);
       set({ isProblemLoading: true });
-
-      const res = await axiosInstance.get(`/problems/get-problems/${id}`);
-      set({ problem: res.data.data });
-      // console.log(res.data)
-      toast.success(res.data.message);
+      
+      const response = await axiosInstance.get(`/problems/get-problems/${id}`);
+      console.log("API response:", response.data);
+      
+      const problem = response.data.data || response.data;
+      set({ currentProblem: problem, problem: problem });
+      return problem;
     } catch (error) {
-      console.log("Error getting problem", error);
-      toast.error("Error in getting problem");
+      console.error("Error fetching problem:", error);
+      throw error;
     } finally {
       set({ isProblemLoading: false });
     }
@@ -46,34 +49,50 @@ export const useProblemStore = create((set, get) => ({  // Add the get parameter
     try {
       const res = await axiosInstance.get("/problems/get-solved");
       set({ solvedProblems: res.data.data || [] });
-      // Fix: Use get() to access the current state
       console.log("Solved problems:", res.data.data);
     } catch (error) {
       console.log("Error getting solved problems", error);
-      // Don't show error toast, not critical
     }
   },
-  UpdateProblembyId:async (id) => {
-    try {
-      set({isProblemLoading:true})
 
-      const res = await axiosInstance.put(`/problems/update-problem/${id}`)
+  UpdateProblembyId: async (id) => {
+    try {
+      set({ isProblemLoading: true });
+
+      const res = await axiosInstance.put(`/problems/update-problem/${id}`);
       set({ problem: res.data });
       toast.success(res.data.message);
     } catch (error) {
-      console.log("Error Updateing problem", error);
-      toast.error("Error in Updateing problem");
-    } finally{
+      console.log("Error Updating problem", error);
+      toast.error("Error in Updating problem");
+    } finally {
       set({ isProblemLoading: false });
     }
   },
-  DeleteProblembyId: async(id)=>{
+
+  DeleteProblembyId: async (id) => {
     try {
-      const res = await axiosInstance.delete(`/problems/delete-problem/${id}`)
-      toast.success(res.message)
+      const res = await axiosInstance.delete(`/problems/delete-problem/${id}`);
+      toast.success(res.data.message);
     } catch (error) {
-      console.log(`Error in deleting problem ${error}`)
-      toast.error("Error in deleting problem")
-    } 
-  }
+      console.log(`Error in deleting problem ${error}`);
+      toast.error("Error in deleting problem");
+    }
+  },
+
+  updateProblem: async (id, problemData) => {
+    try {
+      const response = await axiosInstance.put(`/problems/update-problem/${id}`, problemData);
+      
+      // Refresh the problems list after update
+      get().getAllProblems();
+      set({ currentProblem: null });
+      return response.data;
+    } catch (error) {
+      console.error("Error updating problem:", error);
+      throw error;
+    }
+  },
+
+  clearCurrentProblem: () => set({ currentProblem: null }),
 }));

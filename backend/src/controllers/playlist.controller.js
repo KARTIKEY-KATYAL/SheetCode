@@ -170,3 +170,42 @@ export const removeProblemFromPlaylist = asyncHandler(async (req, res) => {
     new ApiResponse(200, deletedProblems, "Problems removed from playlist successfully")
   );
 });
+
+export const updatePlaylist = asyncHandler(async (req, res) => {
+  const { id, name, description } = req.body;
+  
+  if (!id) {
+    return res.status(400).json(new ApiError(400, "Playlist ID is required"));
+  }
+
+  if (!name) {
+    return res.status(400).json(new ApiError(400, "Playlist name is required"));
+  }
+
+  // Verify the playlist belongs to the user
+  const existingPlaylist = await db.playlist.findUnique({
+    where: {
+      id,
+      userId: req.user.id
+    }
+  });
+
+  if (!existingPlaylist) {
+    return res.status(404).json(new ApiError(404, "Playlist not found or unauthorized"));
+  }
+
+  // Update the playlist
+  const updatedPlaylist = await db.playlist.update({
+    where: {
+      id,
+    },
+    data: {
+      name,
+      description,
+    },
+  });
+
+  return res.status(200).json(
+    new ApiResponse(200, updatedPlaylist, "Playlist updated successfully")
+  );
+});

@@ -4,8 +4,10 @@ import { Link, useNavigate } from "react-router-dom";
 import { useProblemStore } from "../store/useProblemStore";
 import { Bookmark, PencilIcon, TrashIcon, Plus, Code, CheckCircle, CircleDashed, Building2 } from "lucide-react";
 import { usePlaylistStore } from "../store/usePlaylistStore";
-import AddToPlaylistModal from "./AddToPlaylist";
-import CreatePlaylistModal from "./CreatePlaylistModal"
+import AddToPlaylistModal from "./AddToSheet";
+import CreatePlaylistModal from "./CreateSheetModal"
+import AddToSheetModal from "./AddToSheet";
+import CreateSheetModal from "./CreateSheetModal"
 import { useActions } from "../store/useActionStore";
 
 const ProblemTable = ({ problems }) => {
@@ -89,7 +91,8 @@ const ProblemTable = ({ problems }) => {
   };
 
   const handleEdit = (id) => {
-    navigate(`/update-problem/${id}`);
+    // Navigate to the update problem route with the problem ID
+    navigate(`/admin/edit-problem/${id}`);
   };
 
   const handleAddToPlaylist = (problemId) => {
@@ -112,11 +115,16 @@ const ProblemTable = ({ problems }) => {
     
     {/* Header */}
     <div className="flex justify-between items-center mb-6">
-      <h2 className="text-3xl font-bold flex items-center text-red-600 ">Problems</h2>
-      <button className="btn bg-red-700 text-white font-bold gap-2 hover:bg-red-800 transition" onClick={() => setIsCreateModalOpen(true)}>
-        <Plus className="w-5 h-5" aria-hidden="true" />
-        Create Playlist
-      </button>
+      <h2 className="text-3xl font-bold flex items-center text-red-600">Problems</h2>
+      {authUser?.role === "ADMIN" && (
+        <Link 
+          to="/admin/add-problem" 
+          className="btn bg-red-700 text-white font-bold gap-2 hover:bg-red-800 transition"
+        >
+          <Plus className="w-5 h-5" aria-hidden="true" />
+          Create Problem
+        </Link>
+      )}
     </div>
 
     {/* Filters */}
@@ -274,7 +282,7 @@ const ProblemTable = ({ problems }) => {
                         onClick={() => handleAddToPlaylist(problem.id)}
                       >
                         <Bookmark className="w-4 h-4" aria-hidden="true" />
-                        <span className="hidden sm:inline">Save to Playlist</span>
+                        <span className="hidden sm:inline">Save to Sheet</span>
                       </button>
                     </div>
                   </td>

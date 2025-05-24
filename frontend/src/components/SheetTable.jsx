@@ -14,23 +14,35 @@ import {
   User,
   Calendar,
   Clock,
-  Filter
+  Filter,
+  Check,
+  CheckCircle
 } from "lucide-react";
 import ProblemTable from "./ProblemTable";
-import CreatePlaylistModal from "./CreatePlaylistModal";
+import CreatePlaylistModal from "./CreateSheetModal";
 
 const SheetTable = () => {
   const navigate = useNavigate();
   const { authUser } = useAuthStore();
-  const { playlists, getAllPlaylists, deletePlaylist, getPlaylistById } = usePlaylistStore();
+  const { 
+    playlists, 
+    getAllPlaylists, 
+    deletePlaylist,
+    getPlaylistDetails,
+    createPlaylist,
+    updatePlaylist // Add this to use the update function
+  } = usePlaylistStore();
   const { problems, getAllProblems } = useProblemStore();
   
+  // Add state for the modal
+  const [users, setUsers] = useState({});
   const [search, setSearch] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [selectedSheet, setSelectedSheet] = useState(null);
   const [sheetProblems, setSheetProblems] = useState([]);
+  const [editingPlaylist, setEditingPlaylist] = useState(null); // Track which playlist is being edited
   
   // Fetch playlists when component mounts
   useEffect(() => {
@@ -49,6 +61,74 @@ const SheetTable = () => {
     fetchData();
   }, [getAllPlaylists, getAllProblems]);
   
+  // Fetch user details for playlists
+  useEffect(() => {
+    const fetchUsers = async () => {
+      if (!playlists || playlists.length === 0) return;
+      
+      // Create a map to store user data by ID
+      const userMap = {};
+      
+      // First add the current user to the map if available
+      if (authUser) {
+        userMap[authUser.id] = authUser;
+      }
+      
+      // Fetch user details for each unique user ID not already in the map
+      const userIds = new Set();
+      playlists.forEach(playlist => {
+        if (playlist.userId && !userMap[playlist.userId]) {
+          userIds.add(playlist.userId);
+        }
+      });
+      
+      try {
+        // Use the auth API to get user details
+        for (const userId of userIds) {
+          try {
+            const response = await fetch(`/api/users/${userId}`);
+            if (response.ok) {
+              const userData = await response.json();
+              userMap[userId] = userData.data;
+            }
+          } catch (error) {
+            console.error(`Error fetching user ${userId}:`, error);
+          }
+        }
+        
+        setUsers(userMap);
+      } catch (error) {
+        console.error("Error fetching user details:", error);
+      }
+    };
+    
+    fetchUsers();
+  }, [playlists, authUser]);
+  
+  // Helper function to get user name
+  const getUserName = (userId) => {
+    // If it's the current user, use their name
+    if (authUser && userId === authUser.id) {
+      return authUser.name;
+    }
+    
+    // Check if we have the user in our map
+    if (users[userId]) {
+      return users[userId].name;
+    }
+    
+    // If the playlist has user data, use that
+    if (playlists) {
+      const playlist = playlists.find(p => p.userId === userId);
+      if (playlist?.user?.name) {
+        return playlist.user.name;
+      }
+    }
+    
+    // If we don't have the user data yet, show "Loading..."
+    return "Loading...";
+  };
+  
   // Filter playlists based on search
   const filteredPlaylists = useMemo(() => {
     if (!playlists) return [];
@@ -60,7 +140,7 @@ const SheetTable = () => {
   }, [playlists, search]);
   
   // Pagination
-  const itemsPerPage = 6;
+  const itemsPerPage = 10;
   const totalPages = Math.ceil(filteredPlaylists.length / itemsPerPage);
   
   const paginatedPlaylists = useMemo(() => {
@@ -80,6 +160,26 @@ const SheetTable = () => {
     }
   };
   
+  // New function to handle playlist updates
+  const handleUpdateSheet = async (data) => {
+    try {
+      if (!editingPlaylist) return;
+      
+      // Include the ID in the data object
+      const updatedData = {
+        ...data,
+        id: editingPlaylist.id
+      };
+      
+      await updatePlaylist(updatedData);
+      await getAllPlaylists();
+      setIsCreateModalOpen(false);
+      setEditingPlaylist(null); // Clear the editing state
+    } catch (error) {
+      console.error("Error updating sheet:", error);
+    }
+  };
+  
   const handleDelete = async (id) => {
     if (window.confirm("Are you sure you want to delete this sheet? This action cannot be undone.")) {
       try {
@@ -92,17 +192,27 @@ const SheetTable = () => {
   };
   
   const handleEdit = (id) => {
-    navigate(`/edit-sheet/${id}`);
+    // Find the playlist to be edited
+    const playlistToEdit = playlists.find(p => p.id === id);
+    if (playlistToEdit) {
+      setEditingPlaylist(playlistToEdit);
+      setIsCreateModalOpen(true); // Open the modal with this playlist data
+    }
   };
   
   const handleSheetClick = async (id) => {
     try {
-      const sheet = await getPlaylistById(id);
+      await getPlaylistDetails(id); // Use getPlaylistDetails instead of getPlaylistById
+      
+      // Get the current playlist from the store after it's been fetched
+      const sheet = usePlaylistStore.getState().currentPlaylist;
       setSelectedSheet(sheet);
       
-      // Get problems from the sheet
+      // Get problems from the sheet - extract the actual problem objects
       if (sheet && sheet.problems) {
-        setSheetProblems(sheet.problems);
+        // Map through the problems array to extract the problem data
+        const extractedProblems = sheet.problems.map(item => item.problem);
+        setSheetProblems(extractedProblems);
       }
     } catch (error) {
       console.error("Error loading sheet details:", error);
@@ -195,13 +305,13 @@ const SheetTable = () => {
   return (
     <div className="w-full min-h-screen p-10 mx-auto bg-gradient-to-bl from-[#ffe4e6] to-[#ccfbf1] dark:bg-gradient-to-r dark:from-[#0f172a] dark:to-[#334155]">
       {/* Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+      <div className="flex justify-between items-center mb-6">
         <h2 className="text-3xl font-bold flex items-center text-red-600">
-          <BookOpen className="w-8 h-8 mr-2 text-red-600" />
+          <BookOpen className="w-8 h-8 mr-2" />
           Study Sheets
         </h2>
         <button 
-          className="btn bg-blue-600 hover:bg-blue-700 text-white font-bold gap-2"
+          className="btn bg-red-700 text-white font-bold gap-2 hover:bg-red-800 transition"
           onClick={() => setIsCreateModalOpen(true)}
         >
           <Plus className="w-5 h-5" aria-hidden="true" />
@@ -209,18 +319,25 @@ const SheetTable = () => {
         </button>
       </div>
       
-      {/* Search */}
-      <div className="mb-6">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-          <input
-            type="text"
-            placeholder="Search by sheet name or description..."
-            className="input input-bordered w-full pl-10 rounded-md font-bold border-2 border-black bg-white dark:bg-gray-700 dark:text-white"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-        </div>
+      {/* Filters */}
+      <div className="flex flex-wrap gap-4 justify-between items-center mb-6">
+        <input
+          type="text"
+          placeholder="Search by sheet name or description..."
+          className="input input-bordered w-full md:w-1/3 rounded-md font-bold border-2 border-black bg-white dark:bg-gray-700 dark:text-white"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+        
+        {search && (
+          <button 
+            onClick={() => setSearch("")}
+            className="btn bg-blue-700 text-white rounded-md flex items-center gap-2 hover:bg-blue-800"
+          >
+            <Filter className="w-4 h-4" />
+            Clear Search
+          </button>
+        )}
       </div>
       
       {/* Loading state */}
@@ -230,84 +347,76 @@ const SheetTable = () => {
           <p className="ml-3 text-lg font-medium">Loading sheets...</p>
         </div>
       ) : paginatedPlaylists.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {paginatedPlaylists.map((playlist) => (
-            <div 
-              key={playlist.id} 
-              className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 hover:shadow-lg transition-all cursor-pointer"
-              onClick={() => handleSheetClick(playlist.id)}
-            >
-              {/* Sheet header with gradient */}
-              <div className="h-24 bg-gradient-to-r from-red-500 to-blue-700 dark:from-red-600 dark:to-blue-800 relative">
-                <div className="absolute top-4 right-4">
-                  {authUser?.id === playlist.userId && (
-                    <div className="flex gap-2">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleEdit(playlist.id);
-                        }}
-                        className="btn btn-sm btn-circle bg-yellow-500 hover:bg-yellow-600 text-white"
-                      >
-                        <PencilIcon className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDelete(playlist.id);
-                        }}
-                        className="btn btn-sm btn-circle bg-red-600 hover:bg-red-700 text-white"
-                      >
-                        <TrashIcon className="w-4 h-4" />
-                      </button>
+        <div className="overflow-x-auto rounded-xl shadow-md">
+          <table className="table table-zebra table-lg bg-base-200 text-white">
+            <thead className="bg-base-300 text-base font-semibold">
+              <tr>
+                <th>Name</th>
+                <th>Description</th>
+                <th>Problems</th>
+                <th>Created</th>
+                <th>Author</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {paginatedPlaylists.map((playlist) => (
+                <tr key={playlist.id} className="hover:bg-base-100">
+                  <td className="font-medium cursor-pointer" onClick={(e) => handleSheetClick(playlist.id)}>
+                    <div className="flex items-center gap-2 text-blue-600 dark:text-blue-400 hover:underline">
+                      <BookOpen className="w-5 h-5 text-blue-500" />
+                      {playlist.name}
                     </div>
-                  )}
-                </div>
-                <div className="absolute bottom-0 right-0 bg-black/60 text-white px-3 py-1 text-sm font-semibold rounded-tl-lg">
-                  {playlist.problems?.length || 0} Problems
-                </div>
-              </div>
-              
-              {/* Sheet content */}
-              <div className="p-5">
-                <div className="flex justify-between items-start mb-4">
-                  <h3 className="font-bold text-xl text-gray-900 dark:text-gray-100">
-                    {playlist.name}
-                  </h3>
-                  <ChevronRight className="w-5 h-5 text-gray-500 dark:text-gray-400" />
-                </div>
-                
-                <p className="text-gray-600 dark:text-gray-400 line-clamp-2 mb-4">
-                  {playlist.description || "No description available"}
-                </p>
-                
-                <div className="flex flex-wrap gap-2 mb-4">
-                  {playlist.problems?.slice(0, 3).map((problem, idx) => (
-                    <span key={idx} className="bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 text-xs px-2 py-1 rounded-md">
-                      {problem.title?.substring(0, 15)}{problem.title?.length > 15 ? "..." : ""}
+                  </td>
+                  <td className="max-w-xs truncate">
+                    {playlist.description || "No description available"}
+                  </td>
+                  <td>
+                    <span className="badge bg-blue-600 text-white border-none px-3 py-2">
+                      {playlist.problems?.length || 0} problems
                     </span>
-                  ))}
-                  {(playlist.problems?.length || 0) > 3 && (
-                    <span className="bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 text-xs px-2 py-1 rounded-md">
-                      +{playlist.problems.length - 3} more
-                    </span>
-                  )}
-                </div>
-                
-                {/* Footer with date and author */}
-                <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400 border-t border-gray-100 dark:border-gray-700 pt-3">
-                  <div className="flex items-center">
-                    <Calendar className="w-3 h-3 mr-1" />
+                  </td>
+                  <td className="whitespace-nowrap">
                     {new Date(playlist.createdAt).toLocaleDateString()}
-                  </div>
-                  <div className="flex items-center">
-                    <User className="w-3 h-3 mr-1" />
-                    {playlist.user?.name || "Anonymous"}
-                  </div>
-                </div>
-              </div>
-            </div>
-          ))}
+                  </td>
+                  <td>
+                    <div className="flex items-center gap-2">
+                      <User className="w-4 h-4 text-gray-400" />
+                      {playlist.user?.name || getUserName(playlist.userId) || "Anonymous"}
+                    </div>
+                  </td>
+                  <td className="whitespace-nowrap">
+                    <div className="flex gap-2 justify-end">
+                      {authUser?.id === playlist.userId && (
+                        <>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleEdit(playlist.id);
+                            }}
+                            className="btn btn-sm bg-yellow-500 hover:bg-yellow-600 text-white"
+                            title="Edit Sheet"
+                          >
+                            <PencilIcon className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDelete(playlist.id);
+                            }}
+                            className="btn btn-sm bg-red-600 hover:bg-red-700 text-white"
+                            title="Delete Sheet"
+                          >
+                            <TrashIcon className="w-4 h-4" />
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       ) : (
         <div className="bg-white dark:bg-gray-800 p-10 rounded-xl text-center shadow-md">
@@ -341,7 +450,7 @@ const SheetTable = () => {
       
       {/* Pagination */}
       {filteredPlaylists.length > 0 && (
-        <div className="flex justify-center mt-8 gap-2">
+        <div className="flex justify-center mt-6 gap-2">
           <button
             className="btn btn-sm bg-gray-200 text-black dark:bg-gray-700 dark:text-white border border-black disabled:opacity-50 disabled:cursor-not-allowed"
             disabled={currentPage === 1}
@@ -362,11 +471,16 @@ const SheetTable = () => {
         </div>
       )}
       
-      {/* Create sheet modal */}
+      {/* Create/Edit sheet modal */}
       <CreatePlaylistModal
         isOpen={isCreateModalOpen}
-        onClose={() => setIsCreateModalOpen(false)}
-        onSubmit={handleCreateSheet}
+        onClose={() => {
+          setIsCreateModalOpen(false);
+          setEditingPlaylist(null); // Clear editing state when modal is closed
+        }}
+        onSubmit={editingPlaylist ? handleUpdateSheet : handleCreateSheet}
+        initialData={editingPlaylist} // Pass the playlist data if editing
+        isEditing={!!editingPlaylist} // Tell the modal if we're editing
       />
     </div>
   );

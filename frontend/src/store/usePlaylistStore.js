@@ -130,4 +130,27 @@ export const usePlaylistStore = create((set, get) => ({
       set({ isLoading: false });
     }
   },
+
+  updatePlaylist: async (playlistData) => {
+    try {
+      set({ isLoading: true });
+      const response = await axiosInstance.patch("/playlist", playlistData);
+
+      // Update the playlists array with the updated playlist
+      set((state) => ({
+        playlists: state.playlists.map((p) =>
+          p.id === playlistData.id ? response.data.data : p
+        ),
+      }));
+
+      toast.success("Sheet updated successfully");
+      return response.data.data;
+    } catch (error) {
+      console.error("Error updating sheet:", error);
+      toast.error(error.response?.data?.message || "Failed to update sheet");
+      throw error;
+    } finally {
+      set({ isLoading: false });
+    }
+  },
 }));

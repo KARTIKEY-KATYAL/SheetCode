@@ -7,6 +7,7 @@ import {
   getAllListDetails,
   getPlayListDetails,
   removeProblemFromPlaylist,
+  updatePlaylist
 } from '../controllers/playlist.controller.js';
 
 const router = express.Router();
@@ -19,6 +20,9 @@ router.get('/:playlistId', isLoggedIn, getPlayListDetails);
 
 // Create a new playlist
 router.post('/', isLoggedIn, createPlaylist);
+
+// Update a new playlist
+router.patch('/', isLoggedIn, updatePlaylist);
 
 // Add problems to a playlist
 router.post('/:playlistId/problems', isLoggedIn, addProblemToPlaylist);
