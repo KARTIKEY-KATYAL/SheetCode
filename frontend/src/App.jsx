@@ -26,7 +26,10 @@ const App = () => {
 
   useEffect(() => {
     // Log auth state changes
-    console.log("Auth state changed:", { authUser, isAdmin: authUser?.role === "ADMIN" });
+    console.log("Auth state changed:", {
+      authUser,
+      isAdmin: authUser?.role === "ADMIN",
+    });
   }, [authUser]);
 
   if (isCheckingAuth) {
@@ -44,32 +47,36 @@ const App = () => {
         {/* Public and User Routes */}
         <Route path="/" element={<Layout />}>
           <Route index element={<HomePage />} />
-          
+
           {/* Protected User Routes */}
-          <Route path="/problems" element={
-            authUser ? <Problems /> : <Navigate to="/login" />
-          } />
           <Route
-          path="/problem/:id"
-          element={authUser ? <ProblemPage /> : <Navigate to={"/login"} />}
-        />
-          <Route path="/sheets" element={
-            authUser ? <Sheets /> : <Navigate to="/login" />
-          } />
-         
-          <Route path="/profile" element={
-            authUser ? <Profile /> : <Navigate to="/login" />
-          } />
+            path="/problems"
+            element={authUser ? <Problems /> : <Navigate to="/login" />}
+          />
+          <Route
+            path="/problem/:id"
+            element={authUser ? <ProblemPage /> : <Navigate to={"/login"} />}
+          />
+          <Route
+            path="/sheets"
+            element={authUser ? <Sheets /> : <Navigate to="/login" />}
+          />
+
+          <Route
+            path="/profile"
+            element={authUser ? <Profile /> : <Navigate to="/login" />}
+          />
         </Route>
 
         {/* Auth Routes */}
-        <Route path="/login" element={
-          !authUser ? <LoginPage /> : <Navigate to="/" />
-        } />
-        <Route path="/signup" element={
-          !authUser ? <SignUpPage /> : <Navigate to="/" />
-        } />
-       
+        <Route
+          path="/login"
+          element={!authUser ? <LoginPage /> : <Navigate to="/" />}
+        />
+        <Route
+          path="/signup"
+          element={!authUser ? <SignUpPage /> : <Navigate to="/" />}
+        />
 
         {/* Admin Routes */}
         <Route path="/admin" element={<AdminRoute />}>

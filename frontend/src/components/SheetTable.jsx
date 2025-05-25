@@ -172,9 +172,30 @@ const SheetTable = () => {
       };
       
       await updatePlaylist(updatedData);
-      await getAllPlaylists();
+      await getAllPlaylists(); // This refreshes the playlists array
+      
+      // If we're viewing a sheet, refresh its details after update
+      if (selectedSheet && selectedSheet.id === editingPlaylist.id) {
+        // Re-fetch the sheet details to get the updated data
+        await getPlaylistDetails(editingPlaylist.id);
+        
+        // Get the updated sheet from the store
+        const playlistStore = usePlaylistStore.getState();
+        const updatedSheet = playlistStore.currentPlaylist;
+        
+        if (updatedSheet) {
+          setSelectedSheet(updatedSheet);
+          
+          // Update problems if they exist
+          if (updatedSheet.problems) {
+            const extractedProblems = updatedSheet.problems.map(item => item.problem);
+            setSheetProblems(extractedProblems);
+          }
+        }
+      }
+      
       setIsCreateModalOpen(false);
-      setEditingPlaylist(null); // Clear the editing state
+      setEditingPlaylist(null);
     } catch (error) {
       console.error("Error updating sheet:", error);
     }
@@ -249,15 +270,33 @@ const SheetTable = () => {
           
           <div className="flex gap-2">
             <button 
-              onClick={() => handleEdit(selectedSheet.id)} 
-              className="btn bg-yellow-500 hover:bg-yellow-600 text-white"
+              onClick={() => {
+                // Navigate back to main list and highlight the sheet for editing
+                setSelectedSheet(null);
+                setSheetProblems([]);
+                // Trigger edit after a short delay to allow state to update
+                setTimeout(() => {
+                  const sheetToEdit = playlists.find(p => p.id === selectedSheet.id);
+                  if (sheetToEdit) {
+                    setEditingPlaylist(sheetToEdit);
+                    setIsCreateModalOpen(true);
+                  }
+                }, 100);
+              }} 
+              className="btn bg-blue-600 hover:bg-blue-700 text-white border-0 shadow-lg transition-all duration-200"
             >
               <PencilIcon className="w-5 h-5 mr-1" /> 
               Edit Sheet
             </button>
             <button 
-              onClick={() => handleDelete(selectedSheet.id)} 
-              className="btn bg-red-600 hover:bg-red-700 text-white"
+              onClick={() => {
+                if (window.confirm("Are you sure you want to delete this sheet?")) {
+                  handleDelete(selectedSheet.id);
+                  setSelectedSheet(null);
+                  setSheetProblems([]);
+                }
+              }} 
+              className="btn bg-red-600 hover:bg-red-700 text-white border-0 shadow-lg transition-all duration-200"
             >
               <TrashIcon className="w-5 h-5 mr-1" /> 
               Delete Sheet
@@ -363,8 +402,8 @@ const SheetTable = () => {
               {paginatedPlaylists.map((playlist) => (
                 <tr key={playlist.id} className="hover:bg-base-100">
                   <td className="font-medium cursor-pointer" onClick={(e) => handleSheetClick(playlist.id)}>
-                    <div className="flex items-center gap-2 text-blue-600 dark:text-blue-400 hover:underline">
-                      <BookOpen className="w-5 h-5 text-blue-500" />
+                    <div className="flex items-center gap-2 font-semibold text-lg hover:underline">
+                      
                       {playlist.name}
                     </div>
                   </td>
@@ -386,7 +425,7 @@ const SheetTable = () => {
                     </div>
                   </td>
                   <td className="whitespace-nowrap">
-                    <div className="flex gap-2 justify-end">
+                    <div className="flex gap-2 justify-center items-center">
                       {authUser?.id === playlist.userId && (
                         <>
                           <button

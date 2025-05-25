@@ -86,7 +86,7 @@ const Header = () => {
                                 <div className="w-10 rounded-full">
                                     <img
                                         src={
-                                            authUser?.image ||
+                                            authUser?.avatar ||
                                             "https://avatar.iran.liara.run/public/boy"
                                         }
                                         alt="User Avatar"

@@ -939,548 +939,656 @@ const CreateProblemForm = () => {
     // Show loading spinner while loading problem data
     if (isEditing && isLoading && !isDataLoaded) {
       return (
-        <div className="flex items-center justify-center h-screen">
-          <div className="loading loading-spinner loading-lg"></div>
-          <span className="ml-2">Loading problem data...</span>
+        <div className={`min-h-screen w-full flex items-center justify-center ${
+          isDark ? 'bg-gray-900' : 'bg-gray-50'
+        }`}>
+          <div className="flex flex-col items-center space-y-4">
+            <div className="loading loading-spinner loading-lg text-blue-500"></div>
+            <span className={`text-lg font-medium ${
+              isDark ? 'text-gray-200' : 'text-gray-700'
+            }`}>
+              Loading problem data...
+            </span>
+          </div>
         </div>
       );
     }
 
     return (
-      <div className='container mx-auto py-8 px-4 w-full'>
-        <div className={`card ${isDark ? 'bg-gray-800 text-gray-100' : 'bg-base-100'} shadow-xl`}>
-          <div className="card-body p-6 md:p-8">
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 md:mb-8 pb-4 border-b border-opacity-20">
-              <h2 className="card-title text-2xl md:text-3xl flex items-center gap-3">
-                <FileText className={`w-6 h-6 md:w-8 md:h-8 ${isDark ? 'text-blue-400' : 'text-primary'}`} />
-                {isEditing ? 'Edit Problem' : 'Create Problem'}
-              </h2>
+      <div className={`min-h-screen w-full ${
+      isDark ? 'bg-gray-900' : 'bg-gray-50'
+      }`}>
+      <div className="w-full max-w-none px-4 py-8">
+        <div className={`w-full rounded-2xl shadow-2xl border ${
+        isDark 
+          ? 'bg-gray-800 border-gray-700 text-gray-100' 
+          : 'bg-white border-gray-200 text-gray-900'
+        }`}>
+        <div className="w-full p-6 md:p-8">
+          {/* Header Section */}
+          <div className={`flex flex-col lg:flex-row justify-between items-start lg:items-center mb-8 pb-6 border-b-2 ${
+          isDark ? 'border-red-600' : 'border-red-500'
+          }`}>
+          <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold flex items-center gap-4">
+            <FileText className={`w-8 h-8 md:w-10 md:h-10 ${
+            isDark ? 'text-blue-400' : 'text-blue-600'
+            }`} />
+            <span className={`bg-red-700 bg-clip-text `}>
+            {isEditing ? 'Edit Problem' : 'Create Problem'}
+            </span>
+          </h1>
 
-              {/* Only show sample data buttons when creating new problem */}
-              {!isEditing && (
-                <div className="flex flex-col md:flex-row gap-3 mt-4 md:mt-0">
-                  <div className="join">
-                    <button
-                      type="button"
-                      className={`btn join-item ${
-                        sampleType === "DP" ? `${isDark ? 'bg-blue-700 text-white' : 'btn-active'}` : 
-                        `${isDark ? 'bg-gray-700 hover:bg-gray-600' : ''}`
-                      }`}
-                      onClick={() => setSampleType("DP")}
-                    >
-                      DP Problem
-                    </button>
-                    <button
-                      type="button"
-                      className={`btn join-item ${
-                        sampleType === "string" ? `${isDark ? 'bg-blue-700 text-white' : 'btn-active'}` : 
-                        `${isDark ? 'bg-gray-700 hover:bg-gray-600' : ''}`
-                      }`}
-                      onClick={() => setSampleType("string")}
-                    >
-                      String Problem
-                    </button>
-                  </div>
-                  <button
-                    type="button"
-                    className={`btn ${isDark ? 'bg-purple-700 hover:bg-purple-600 text-white' : 'btn-secondary'} gap-2`}
-                    onClick={loadSampleData}
-                  >
-                    <Download className="w-4 h-4" />
-                    Load Sample
-                  </button>
-                </div>
+          {/* Sample Data Buttons - Only show when creating */}
+          {!isEditing && (
+            <div className="flex flex-col sm:flex-row gap-3 mt-6 lg:mt-0">
+            <div className="join shadow-lg">
+              <button
+              type="button"
+              className={`btn join-item font-semibold transition-all duration-200 ${
+                sampleType === "DP" 
+                ? `${isDark ? 'bg-blue-600 hover:bg-blue-700 text-white border-blue-600' : 'bg-blue-600 hover:bg-blue-700 text-white border-blue-600'}` 
+                : `${isDark ? 'bg-gray-700 hover:bg-gray-600 text-gray-200 border-gray-600' : 'bg-gray-100 hover:bg-gray-200 text-gray-700 border-gray-300'}`
+              }`}
+              onClick={() => setSampleType("DP")}
+              >
+              DP Problem
+              </button>
+              <button
+              type="button"
+              className={`btn join-item font-semibold transition-all duration-200 ${
+                sampleType === "string" 
+                ? `${isDark ? 'bg-blue-600 hover:bg-blue-700 text-white border-blue-600' : 'bg-blue-600 hover:bg-blue-700 text-white border-blue-600'}` 
+                : `${isDark ? 'bg-gray-700 hover:bg-gray-600 text-gray-200 border-gray-600' : 'bg-gray-100 hover:bg-gray-200 text-gray-700 border-gray-300'}`
+              }`}
+              onClick={() => setSampleType("string")}
+              >
+              String Problem
+              </button>
+            </div>
+            <button
+              type="button"
+              className={`btn font-semibold gap-2 shadow-lg transition-all duration-200 ${
+              isDark 
+                ? 'bg-red-600 hover:bg-red-700 text-white border-red-600' 
+                : 'bg-red-600 hover:bg-red-700 text-white border-red-600'
+              }`}
+              onClick={loadSampleData}
+            >
+              <Download className="w-4 h-4" />
+              Load Sample
+            </button>
+            </div>
+          )}
+          </div>
+
+          <form onSubmit={handleSubmit(onSubmit)} className="w-full space-y-10">
+          {/* Basic Information Section */}
+          <div className={`w-full rounded-xl p-6 shadow-lg border-l-4 ${
+            isDark 
+            ? 'bg-gray-750 border-blue-500' 
+            : 'bg-gray-50 border-blue-500'
+          }`}>
+            <h2 className={`text-2xl font-bold mb-6 ${
+            isDark ? 'text-blue-400' : 'text-blue-600'
+            }`}>
+            Basic Information
+            </h2>
+            
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="form-control lg:col-span-2">
+              <label className="label">
+              <span className={`label-text text-lg font-bold ${
+                isDark ? 'text-gray-200' : 'text-gray-800'
+              }`}>
+                Title *
+              </span>
+              </label>
+              <input
+              type="text"
+              className={`input input-bordered w-full text-lg font-medium transition-all duration-200 focus:scale-105 ${
+                isDark 
+                ? 'bg-gray-700 border-gray-600 text-white focus:border-blue-500 focus:bg-gray-600' 
+                : 'bg-white border-gray-300 text-gray-900 focus:border-blue-500 focus:bg-gray-50'
+              }`}
+              {...register("title")}
+              placeholder="Enter an engaging problem title"
+              />
+              {errors.title && (
+              <label className="label">
+                <span className="label-text-alt text-red-500 font-medium">
+                {errors.title.message}
+                </span>
+              </label>
               )}
             </div>
 
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
-              {/* Basic Information */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="form-control md:col-span-2">
-                  <label className="label">
-                    <span className={`label-text text-base md:text-lg font-semibold ${isDark ? 'text-gray-200' : ''}`}>
-                      Title
-                    </span>
-                  </label>
-                  <input
-                    type="text"
-                    className={`input input-bordered w-full text-base md:text-lg ${
-                      isDark ? 'bg-gray-700 border-gray-600 text-white' : ''
-                    }`}
-                    {...register("title")}
-                    placeholder="Enter problem title"
-                  />
-                  {errors.title && (
-                    <label className="label">
-                      <span className="label-text-alt text-error">
-                        {errors.title.message}
-                      </span>
-                    </label>
-                  )}
-                </div>
+            <div className="form-control lg:col-span-2">
+              <label className="label">
+              <span className={`label-text text-lg font-bold ${
+                isDark ? 'text-gray-200' : 'text-gray-800'
+              }`}>
+                Description *
+              </span>
+              </label>
+              <textarea
+              className={`textarea textarea-bordered min-h-40 w-full text-base p-4 resize-y font-medium transition-all duration-200 focus:scale-105 ${
+                isDark 
+                ? 'bg-gray-700 border-gray-600 text-white focus:border-blue-500 focus:bg-gray-600' 
+                : 'bg-white border-gray-300 text-gray-900 focus:border-blue-500 focus:bg-gray-50'
+              }`}
+              {...register("description")}
+              placeholder="Provide a detailed and clear problem description"
+              />
+              {errors.description && (
+              <label className="label">
+                <span className="label-text-alt text-red-500 font-medium">
+                {errors.description.message}
+                </span>
+              </label>
+              )}
+            </div>
 
-                <div className="form-control md:col-span-2">
+            <div className="form-control">
+              <label className="label">
+              <span className={`label-text text-lg font-bold ${
+                isDark ? 'text-gray-200' : 'text-gray-800'
+              }`}>
+                Difficulty *
+              </span>
+              </label>
+              <select
+              className={`select select-bordered w-full text-lg font-medium transition-all duration-200 focus:scale-105 ${
+                isDark 
+                ? 'bg-gray-700 border-gray-600 text-white focus:border-blue-500' 
+                : 'bg-white border-gray-300 text-gray-900 focus:border-blue-500'
+              }`}
+              {...register("difficulty")}
+              >
+              <option value="EASY">🟢 Easy</option>
+              <option value="MEDIUM">🟡 Medium</option>
+              <option value="HARD">🔴 Hard</option>
+              </select>
+            </div>
+            </div>
+          </div>
+
+          {/* Tags Section */}
+          <div className={`w-full rounded-xl p-6 shadow-lg border-l-4 ${
+            isDark 
+            ? 'bg-gray-750 border-red-500' 
+            : 'bg-gray-50 border-red-500'
+          }`}>
+            <div className="flex items-center justify-between mb-6">
+            <h3 className={`text-2xl font-bold flex items-center gap-3 ${
+              isDark ? 'text-red-400' : 'text-red-600'
+            }`}>
+              <BookOpen className="w-6 h-6" />
+              Tags
+            </h3>
+            <button
+              type="button"
+              className={`btn font-semibold shadow-lg transition-all duration-200 hover:scale-105 ${
+              isDark 
+                ? 'bg-blue-600 hover:bg-blue-700 text-white border-blue-600' 
+                : 'bg-blue-600 hover:bg-blue-700 text-white border-blue-600'
+              }`}
+              onClick={() => appendTag("")}
+            >
+              <Plus className="w-4 h-4 mr-2" /> Add Tag
+            </button>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+            {tagFields.map((field, index) => (
+              <div key={field.id} className="flex gap-3 items-center">
+              <input
+                type="text"
+                className={`input input-bordered flex-1 font-medium transition-all duration-200 focus:scale-105 ${
+                isDark 
+                  ? 'bg-gray-700 border-gray-600 text-white focus:border-red-500' 
+                  : 'bg-white border-gray-300 text-gray-900 focus:border-red-500'
+                }`}
+                {...register(`tags.${index}`)}
+                placeholder="Enter tag name"
+              />
+              <button
+                type="button"
+                className={`btn btn-square transition-all duration-200 hover:scale-110 ${
+                isDark 
+                  ? 'bg-red-600 hover:bg-red-700 text-white border-red-600' 
+                  : 'bg-red-600 hover:bg-red-700 text-white border-red-600'
+                }`}
+                onClick={() => removeTag(index)}
+                disabled={tagFields.length === 1}
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+              </div>
+            ))}
+            </div>
+          </div>
+
+          {/* Companies Section */}
+          <div className={`w-full rounded-xl p-6 shadow-lg border-l-4 ${
+            isDark 
+            ? 'bg-gray-750 border-blue-500' 
+            : 'bg-gray-50 border-blue-500'
+          }`}>
+            <div className="flex items-center justify-between mb-6">
+            <h3 className={`text-2xl font-bold flex items-center gap-3 ${
+              isDark ? 'text-blue-400' : 'text-blue-600'
+            }`}>
+              <Building2 className="w-6 h-6" />
+              Companies
+            </h3>
+            <button
+              type="button"
+              className={`btn font-semibold shadow-lg transition-all duration-200 hover:scale-105 ${
+              isDark 
+                ? 'bg-red-600 hover:bg-red-700 text-white border-red-600' 
+                : 'bg-red-600 hover:bg-red-700 text-white border-red-600'
+              }`}
+              onClick={() => appendCompany("")}
+            >
+              <Plus className="w-4 h-4 mr-2" /> Add Company
+            </button>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+            {companyFields.map((field, index) => (
+              <div key={field.id} className="flex gap-3 items-center">
+              <input
+                type="text"
+                className={`input input-bordered flex-1 font-medium transition-all duration-200 focus:scale-105 ${
+                isDark 
+                  ? 'bg-gray-700 border-gray-600 text-white focus:border-blue-500' 
+                  : 'bg-white border-gray-300 text-gray-900 focus:border-blue-500'
+                }`}
+                {...register(`companies.${index}`)}
+                placeholder="Company name"
+              />
+              <button
+                type="button"
+                className={`btn btn-square transition-all duration-200 hover:scale-110 ${
+                isDark 
+                  ? 'bg-blue-600 hover:bg-blue-700 text-white border-blue-600' 
+                  : 'bg-blue-600 hover:bg-blue-700 text-white border-blue-600'
+                }`}
+                onClick={() => removeCompany(index)}
+                disabled={companyFields.length === 1}
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+              </div>
+            ))}
+            </div>
+          </div>
+
+          {/* Test Cases Section */}
+          <div className={`w-full rounded-xl p-6 shadow-lg border-l-4 ${
+            isDark 
+            ? 'bg-gray-750 border-red-500' 
+            : 'bg-gray-50 border-red-500'
+          }`}>
+            <div className="flex items-center justify-between mb-6">
+            <h3 className={`text-2xl font-bold flex items-center gap-3 ${
+              isDark ? 'text-red-400' : 'text-red-600'
+            }`}>
+              <CheckCircle2 className="w-6 h-6" />
+              Test Cases
+            </h3>
+            <button
+              type="button"
+              className={`btn font-semibold shadow-lg transition-all duration-200 hover:scale-105 ${
+              isDark 
+                ? 'bg-blue-600 hover:bg-blue-700 text-white border-blue-600' 
+                : 'bg-blue-600 hover:bg-blue-700 text-white border-blue-600'
+              }`}
+              onClick={() => appendTestCase({ input: "", output: "" })}
+            >
+              <Plus className="w-4 h-4 mr-2" /> Add Test Case
+            </button>
+            </div>
+            <div className="space-y-6">
+            {testCaseFields.map((field, index) => (
+              <div key={field.id} className={`rounded-lg p-6 shadow-md border ${
+              isDark 
+                ? 'bg-gray-800 border-gray-700' 
+                : 'bg-white border-gray-200'
+              }`}>
+              <div className="flex justify-between items-center mb-4">
+                <h4 className={`text-xl font-bold ${
+                isDark ? 'text-gray-200' : 'text-gray-800'
+                }`}>
+                Test Case #{index + 1}
+                </h4>
+                <button
+                type="button"
+                className={`btn btn-sm font-medium transition-all duration-200 hover:scale-105 ${
+                  isDark 
+                  ? 'bg-red-600 hover:bg-red-700 text-white' 
+                  : 'bg-red-600 hover:bg-red-700 text-white'
+                }`}
+                onClick={() => removeTestCase(index)}
+                disabled={testCaseFields.length === 1}
+                >
+                <Trash2 className="w-4 h-4 mr-1" /> Remove
+                </button>
+              </div>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="form-control">
+                <label className="label">
+                  <span className={`label-text font-bold ${
+                  isDark ? 'text-gray-300' : 'text-gray-700'
+                  }`}>
+                  Input
+                  </span>
+                </label>
+                <textarea
+                  className={`textarea textarea-bordered min-h-24 w-full p-3 resize-y font-mono transition-all duration-200 focus:scale-105 ${
+                  isDark 
+                    ? 'bg-gray-700 border-gray-600 text-white focus:border-red-500' 
+                    : 'bg-white border-gray-300 text-gray-900 focus:border-red-500'
+                  }`}
+                  {...register(`testCases.${index}.input`)}
+                  placeholder="Enter test case input"
+                />
+                </div>
+                <div className="form-control">
+                <label className="label">
+                  <span className={`label-text font-bold ${
+                  isDark ? 'text-gray-300' : 'text-gray-700'
+                  }`}>
+                  Expected Output
+                  </span>
+                </label>
+                <textarea
+                  className={`textarea textarea-bordered min-h-24 w-full p-3 resize-y font-mono transition-all duration-200 focus:scale-105 ${
+                  isDark 
+                    ? 'bg-gray-700 border-gray-600 text-white focus:border-red-500' 
+                    : 'bg-white border-gray-300 text-gray-900 focus:border-red-500'
+                  }`}
+                  {...register(`testCases.${index}.output`)}
+                  placeholder="Enter expected output"
+                />
+                </div>
+              </div>
+              </div>
+            ))}
+            </div>
+          </div>
+
+          {/* Code Editor Sections */}
+          <div className="w-full space-y-8">
+            {["JAVASCRIPT", "PYTHON", "JAVA", "CPP"].map((language) => (
+            <div
+              key={language}
+              className={`w-full rounded-xl p-6 shadow-lg border-l-4 ${
+              isDark 
+                ? 'bg-gray-750 border-blue-500' 
+                : 'bg-gray-50 border-blue-500'
+              }`}
+            >
+              <h3 className={`text-2xl font-bold mb-6 flex items-center gap-3 ${
+              isDark ? 'text-blue-400' : 'text-blue-600'
+              }`}>
+              <Code2 className="w-6 h-6" />
+              {language}
+              </h3>
+
+              <div className="space-y-8">
+              {/* Starter Code */}
+              <div className={`rounded-lg shadow-md border ${
+                isDark 
+                ? 'bg-gray-800 border-gray-700' 
+                : 'bg-white border-gray-200'
+              }`}>
+                <div className="p-6">
+                <h4 className={`font-bold text-lg mb-4 ${
+                  isDark ? 'text-gray-200' : 'text-gray-800'
+                }`}>
+                  🚀 Starter Code Template
+                </h4>
+                <div className="border-2 rounded-lg overflow-hidden border-gray-300 dark:border-gray-600">
+                  <Controller
+                  name={`codeSnippets.${language}`}
+                  control={control}
+                  render={({ field }) => (
+                    <Editor
+                    height="350px"
+                    language={language.toLowerCase()}
+                    theme={isDark ? "vs-dark" : "light"}
+                    value={field.value}
+                    onChange={field.onChange}
+                    options={{
+                      minimap: { enabled: false },
+                      fontSize: 14,
+                      lineNumbers: "on",
+                      roundedSelection: false,
+                      scrollBeyondLastLine: false,
+                      automaticLayout: true,
+                      padding: { top: 16, bottom: 16 },
+                    }}
+                    />
+                  )}
+                  />
+                </div>
+                </div>
+              </div>
+
+              {/* Reference Solution */}
+              <div className={`rounded-lg shadow-md border ${
+                isDark 
+                ? 'bg-gray-800 border-gray-700' 
+                : 'bg-white border-gray-200'
+              }`}>
+                <div className="p-6">
+                <h4 className={`font-bold text-lg mb-4 flex items-center gap-2 ${
+                  isDark ? 'text-gray-200' : 'text-gray-800'
+                }`}>
+                  <CheckCircle2 className={`w-5 h-5 ${
+                  isDark ? 'text-red-400' : 'text-red-600'
+                  }`} />
+                  🎯 Reference Solution
+                </h4>
+                <div className="border-2 rounded-lg overflow-hidden border-gray-300 dark:border-gray-600">
+                  <Controller
+                  name={`referenceSolutions.${language}`}
+                  control={control}
+                  render={({ field }) => (
+                    <Editor
+                    height="350px"
+                    language={language.toLowerCase()}
+                    theme={isDark ? "vs-dark" : "light"}
+                    value={field.value}
+                    onChange={field.onChange}
+                    options={{
+                      minimap: { enabled: false },
+                      fontSize: 14,
+                      lineNumbers: "on",
+                      roundedSelection: false,
+                      scrollBeyondLastLine: false,
+                      automaticLayout: true,
+                      padding: { top: 16, bottom: 16 },
+                    }}
+                    />
+                  )}
+                  />
+                </div>
+                </div>
+              </div>
+
+              {/* Examples */}
+              <div className={`rounded-lg shadow-md border ${
+                isDark 
+                ? 'bg-gray-800 border-gray-700' 
+                : 'bg-white border-gray-200'
+              }`}>
+                <div className="p-6">
+                <h4 className={`font-bold text-lg mb-4 ${
+                  isDark ? 'text-gray-200' : 'text-gray-800'
+                }`}>
+                  📝 Example
+                </h4>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <div className="form-control">
                   <label className="label">
-                    <span className={`label-text text-base md:text-lg font-semibold ${isDark ? 'text-gray-200' : ''}`}>
-                      Description
+                    <span className={`label-text font-bold ${
+                    isDark ? 'text-gray-300' : 'text-gray-700'
+                    }`}>
+                    Input
                     </span>
                   </label>
                   <textarea
-                    className={`textarea textarea-bordered min-h-32 w-full text-base md:text-lg p-4 resize-y ${
-                      isDark ? 'bg-gray-700 border-gray-600 text-white' : ''
+                    className={`textarea textarea-bordered min-h-20 w-full p-3 resize-y font-mono transition-all duration-200 focus:scale-105 ${
+                    isDark 
+                      ? 'bg-gray-700 border-gray-600 text-white focus:border-blue-500' 
+                      : 'bg-white border-gray-300 text-gray-900 focus:border-blue-500'
                     }`}
-                    {...register("description")}
-                    placeholder="Enter problem description"
+                    {...register(`examples.${language}.input`)}
+                    placeholder="Example input"
                   />
-                  {errors.description && (
-                    <label className="label">
-                      <span className="label-text-alt text-error">
-                        {errors.description.message}
-                      </span>
-                    </label>
-                  )}
-                </div>
-
-                <div className="form-control">
+                  </div>
+                  <div className="form-control">
                   <label className="label">
-                    <span className={`label-text text-base md:text-lg font-semibold ${isDark ? 'text-gray-200' : ''}`}>
-                      Difficulty
+                    <span className={`label-text font-bold ${
+                    isDark ? 'text-gray-300' : 'text-gray-700'
+                    }`}>
+                    Output
                     </span>
                   </label>
-                  <select
-                    className={`select select-bordered w-full text-base md:text-lg ${
-                      isDark ? 'bg-gray-700 border-gray-600 text-white' : ''
+                  <textarea
+                    className={`textarea textarea-bordered min-h-20 w-full p-3 resize-y font-mono transition-all duration-200 focus:scale-105 ${
+                    isDark 
+                      ? 'bg-gray-700 border-gray-600 text-white focus:border-blue-500' 
+                      : 'bg-white border-gray-300 text-gray-900 focus:border-blue-500'
                     }`}
-                    {...register("difficulty")}
-                  >
-                    <option value="EASY">Easy</option>
-                    <option value="MEDIUM">Medium</option>
-                    <option value="HARD">Hard</option>
-                  </select>
-                  {errors.difficulty && (
-                    <label className="label">
-                      <span className="label-text-alt text-error">
-                        {errors.difficulty.message}
-                      </span>
-                    </label>
-                  )}
-                </div>
-              </div>
-
-              {/* Tags */}
-              <div className={`card ${isDark ? 'bg-gray-700' : 'bg-base-200'} p-4 md:p-6 shadow-md`}>
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className={`text-lg md:text-xl font-semibold flex items-center gap-2 ${isDark ? 'text-gray-100' : ''}`}>
-                    <BookOpen className={`w-5 h-5 ${isDark ? 'text-blue-300' : ''}`} />
-                    Tags
-                  </h3>
-                  <button
-                    type="button"
-                    className={`btn ${isDark ? 'bg-blue-600 hover:bg-blue-500 text-white' : 'btn-primary'} btn-sm`}
-                    onClick={() => appendTag("")}
-                  >
-                    <Plus className="w-4 h-4 mr-1" /> Add Tag
-                  </button>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {tagFields.map((field, index) => (
-                    <div key={field.id} className="flex gap-2 items-center">
-                      <input
-                        type="text"
-                        className={`input input-bordered flex-1 ${
-                          isDark ? 'bg-gray-800 border-gray-600 text-white' : ''
-                        }`}
-                        {...register(`tags.${index}`)}
-                        placeholder="Enter tag"
-                      />
-                      <button
-                        type="button"
-                        className="btn btn-ghost btn-square btn-sm"
-                        onClick={() => removeTag(index)}
-                        disabled={tagFields.length === 1}
-                      >
-                        <Trash2 className={`w-4 h-4 ${isDark ? 'text-red-400' : 'text-error'}`} />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-                {errors.tags && (
-                  <div className="mt-2">
-                    <span className="text-error text-sm">
-                      {errors.tags.message}
+                    {...register(`examples.${language}.output`)}
+                    placeholder="Example output"
+                  />
+                  </div>
+                  <div className="form-control lg:col-span-2">
+                  <label className="label">
+                    <span className={`label-text font-bold ${
+                    isDark ? 'text-gray-300' : 'text-gray-700'
+                    }`}>
+                    Explanation
                     </span>
+                  </label>
+                  <textarea
+                    className={`textarea textarea-bordered min-h-24 w-full p-3 resize-y transition-all duration-200 focus:scale-105 ${
+                    isDark 
+                      ? 'bg-gray-700 border-gray-600 text-white focus:border-blue-500' 
+                      : 'bg-white border-gray-300 text-gray-900 focus:border-blue-500'
+                    }`}
+                    {...register(`examples.${language}.explanation`)}
+                    placeholder="Explain the example"
+                  />
                   </div>
-                )}
+                </div>
+                </div>
               </div>
+              </div>
+            </div>
+            ))}
+          </div>
 
-              {/* Add Companies Section */}
-              <div className={`card ${isDark ? 'bg-gray-700' : 'bg-base-200'} p-4 md:p-6 shadow-md`}>
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className={`text-lg md:text-xl font-semibold flex items-center gap-2 ${isDark ? 'text-gray-100' : ''}`}>
-                    <Building2 className={`w-5 h-5 ${isDark ? 'text-green-300' : 'text-green-600'}`} />
-                    Companies
+          {/* Additional Information */}
+          <div className={`w-full rounded-xl p-6 shadow-lg border-l-4 ${
+            isDark 
+                    ? 'bg-gray-750 border-red-500' 
+                    : 'bg-gray-50 border-red-500'
+                }`}>
+                  <h3 className={`text-2xl font-bold mb-6 flex items-center gap-3 ${
+                    isDark ? 'text-red-400' : 'text-red-600'
+                  }`}>
+                    <Lightbulb className="w-6 h-6" />
+                    Additional Information
                   </h3>
-                  <button
-                    type="button"
-                    className={`btn ${isDark ? 'bg-green-600 hover:bg-green-500 text-white' : 'btn-success'} btn-sm`}
-                    onClick={() => appendCompany("")}
-                  >
-                    <Plus className="w-4 h-4 mr-1" /> Add Company
-                  </button>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {companyFields.map((field, index) => (
-                    <div key={field.id} className="flex gap-2 items-center">
-                      <input
-                        type="text"
-                        className={`input input-bordered flex-1 ${
-                          isDark ? 'bg-gray-800 border-gray-600 text-white' : ''
-                        }`}
-                        {...register(`companies.${index}`)}
-                        placeholder="Enter company name"
-                      />
-                      <button
-                        type="button"
-                        className="btn btn-ghost btn-square btn-sm"
-                        onClick={() => removeCompany(index)}
-                        disabled={companyFields.length === 1}
-                      >
-                        <Trash2 className={`w-4 h-4 ${isDark ? 'text-red-400' : 'text-error'}`} />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-                <div className="mt-3 text-sm text-gray-500 dark:text-gray-400">
-                  Add companies that have asked this problem in their interviews.
-                </div>
-              </div>
-
-              {/* Test Cases */}
-              <div className={`card ${isDark ? 'bg-gray-700' : 'bg-base-200'} p-4 md:p-6 shadow-md`}>
-                <div className="flex items-center justify-between mb-6">
-                  <h3 className={`text-lg md:text-xl font-semibold flex items-center gap-2 ${isDark ? 'text-gray-100' : ''}`}>
-                    <CheckCircle2 className={`w-5 h-5 ${isDark ? 'text-blue-300' : ''}`} />
-                    Test Cases
-                  </h3>
-                  <button
-                    type="button"
-                    className={`btn ${isDark ? 'bg-blue-600 hover:bg-blue-500 text-white' : 'btn-primary'} btn-sm`}
-                    onClick={() => appendTestCase({ input: "", output: "" })}
-                  >
-                    <Plus className="w-4 h-4 mr-1" /> Add Test Case
-                  </button>
-                </div>
-                <div className="space-y-6">
-                  {testCaseFields.map((field, index) => (
-                    <div key={field.id} className={`card ${isDark ? 'bg-gray-800' : 'bg-base-100'} shadow-md`}>
-                      <div className="card-body p-4 md:p-6">
-                        <div className="flex justify-between items-center mb-4">
-                          <h4 className={`text-base md:text-lg font-semibold ${isDark ? 'text-gray-200' : ''}`}>
-                            Test Case #{index + 1}
-                          </h4>
-                          <button
-                            type="button"
-                            className={`btn btn-ghost btn-sm ${isDark ? 'text-red-400' : 'text-error'}`}
-                            onClick={() => removeTestCase(index)}
-                            disabled={testCaseFields.length === 1}
-                          >
-                            <Trash2 className="w-4 h-4 mr-1" /> Remove
-                          </button>
-                        </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-                          <div className="form-control">
-                            <label className="label">
-                              <span className={`label-text font-medium ${isDark ? 'text-gray-300' : ''}`}>
-                                Input
-                              </span>
-                            </label>
-                            <textarea
-                              className={`textarea textarea-bordered min-h-24 w-full p-3 resize-y ${
-                                isDark ? 'bg-gray-700 border-gray-600 text-white' : ''
-                              }`}
-                              {...register(`testCases.${index}.input`)}
-                              placeholder="Enter test case input"
-                            />
-                            {errors.testCases?.[index]?.input && (
-                              <label className="label">
-                                <span className="label-text-alt text-error">
-                                  {errors.testCases[index].input.message}
-                                </span>
-                              </label>
-                            )}
-                          </div>
-                          <div className="form-control">
-                            <label className="label">
-                              <span className={`label-text font-medium ${isDark ? 'text-gray-300' : ''}`}>
-                                Expected Output
-                              </span>
-                            </label>
-                            <textarea
-                              className={`textarea textarea-bordered min-h-24 w-full p-3 resize-y ${
-                                isDark ? 'bg-gray-700 border-gray-600 text-white' : ''
-                              }`}
-                              {...register(`testCases.${index}.output`)}
-                              placeholder="Enter expected output"
-                            />
-                            {errors.testCases?.[index]?.output && (
-                              <label className="label">
-                                <span className="label-text-alt text-error">
-                                  {errors.testCases[index].output.message}
-                                </span>
-                              </label>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                {errors.testCases && !Array.isArray(errors.testCases) && (
-                  <div className="mt-2">
-                    <span className="text-error text-sm">
-                      {errors.testCases.message}
-                    </span>
-                  </div>
-                )}
-              </div>
-
-              {/* Code Editor Sections */}
-              <div className="space-y-8">
-                {["JAVASCRIPT", "PYTHON", "JAVA","CPP"].map((language) => (
-                  <div
-                    key={language}
-                    className={`card ${isDark ? 'bg-gray-700' : 'bg-base-200'} p-4 md:p-6 shadow-md`}
-                  >
-                    <h3 className={`text-lg md:text-xl font-semibold mb-6 flex items-center gap-2 ${isDark ? 'text-gray-100' : ''}`}>
-                      <Code2 className={`w-5 h-5 ${isDark ? 'text-blue-300' : ''}`} />
-                      {language}
-                    </h3>
-
-                    <div className="space-y-6">
-                      {/* Starter Code */}
-                      <div className={`card ${isDark ? 'bg-gray-800' : 'bg-base-100'} shadow-md`}>
-                        <div className="card-body p-4 md:p-6">
-                          <h4 className={`font-semibold text-base md:text-lg mb-4 ${isDark ? 'text-gray-200' : ''}`}>
-                            Starter Code Template
-                          </h4>
-                          <div className="border rounded-md overflow-hidden">
-                            <Controller
-                              name={`codeSnippets.${language}`}
-                              control={control}
-                              render={({ field }) => (
-                                <Editor
-                                  height="300px"
-                                  language={language.toLowerCase()}
-                                  theme={isDark ? "vs-dark" : "light"}
-                                  value={field.value}
-                                  onChange={field.onChange}
-                                  options={{
-                                    minimap: { enabled: false },
-                                    fontSize: 14,
-                                    lineNumbers: "on",
-                                    roundedSelection: false,
-                                    scrollBeyondLastLine: false,
-                                    automaticLayout: true,
-                                  }}
-                                />
-                              )}
-                            />
-                          </div>
-                          {errors.codeSnippets?.[language] && (
-                            <div className="mt-2">
-                              <span className="text-error text-sm">
-                                {errors.codeSnippets[language].message}
-                              </span>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Reference Solution */}
-                      <div className={`card ${isDark ? 'bg-gray-800' : 'bg-base-100'} shadow-md`}>
-                        <div className="card-body p-4 md:p-6">
-                          <h4 className={`font-semibold text-base md:text-lg mb-4 flex items-center gap-2 ${isDark ? 'text-gray-200' : ''}`}>
-                            <CheckCircle2 className={`w-5 h-5 ${isDark ? 'text-green-400' : 'text-success'}`} />
-                            Reference Solution
-                          </h4>
-                          <div className="border rounded-md overflow-hidden">
-                            <Controller
-                              name={`referenceSolutions.${language}`}
-                              control={control}
-                              render={({ field }) => (
-                                <Editor
-                                  height="300px"
-                                  language={language.toLowerCase()}
-                                  theme={isDark ? "vs-dark" : "light"}
-                                  value={field.value}
-                                  onChange={field.onChange}
-                                  options={{
-                                    minimap: { enabled: false },
-                                    fontSize: 14,
-                                    lineNumbers: "on",
-                                    roundedSelection: false,
-                                    scrollBeyondLastLine: false,
-                                    automaticLayout: true,
-                                  }}
-                                />
-                              )}
-                            />
-                          </div>
-                          {errors.referenceSolutions?.[language] && (
-                            <div className="mt-2">
-                              <span className="text-error text-sm">
-                                {errors.referenceSolutions[language].message}
-                              </span>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Examples */}
-                      <div className={`card ${isDark ? 'bg-gray-800' : 'bg-base-100'} shadow-md`}>
-                        <div className="card-body p-4 md:p-6">
-                          <h4 className={`font-semibold text-base md:text-lg mb-4 ${isDark ? 'text-gray-200' : ''}`}>
-                            Example
-                          </h4>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-                            <div className="form-control">
-                              <label className="label">
-                                <span className={`label-text font-medium ${isDark ? 'text-gray-300' : ''}`}>
-                                  Input
-                                </span>
-                              </label>
-                              <textarea
-                                className={`textarea textarea-bordered min-h-20 w-full p-3 resize-y ${
-                                  isDark ? 'bg-gray-700 border-gray-600 text-white' : ''
-                                }`}
-                                {...register(`examples.${language}.input`)}
-                                placeholder="Example input"
-                              />
-                              {errors.examples?.[language]?.input && (
-                                <label className="label">
-                                  <span className="label-text-alt text-error">
-                                    {errors.examples[language].input.message}
-                                  </span>
-                                </label>
-                              )}
-                            </div>
-                            <div className="form-control">
-                              <label className="label">
-                                <span className={`label-text font-medium ${isDark ? 'text-gray-300' : ''}`}>
-                                  Output
-                                </span>
-                              </label>
-                              <textarea
-                                className={`textarea textarea-bordered min-h-20 w-full p-3 resize-y ${
-                                  isDark ? 'bg-gray-700 border-gray-600 text-white' : ''
-                                }`}
-                                {...register(`examples.${language}.output`)}
-                                placeholder="Example output"
-                              />
-                              {errors.examples?.[language]?.output && (
-                                <label className="label">
-                                  <span className="label-text-alt text-error">
-                                    {errors.examples[language].output.message}
-                                  </span>
-                                </label>
-                              )}
-                            </div>
-                            <div className="form-control md:col-span-2">
-                              <label className="label">
-                                <span className={`label-text font-medium ${isDark ? 'text-gray-300' : ''}`}>
-                                  Explanation
-                                </span>
-                              </label>
-                              <textarea
-                                className={`textarea textarea-bordered min-h-24 w-full p-3 resize-y ${
-                                  isDark ? 'bg-gray-700 border-gray-600 text-white' : ''
-                                }`}
-                                {...register(`examples.${language}.explanation`)}
-                                placeholder="Explain the example"
-                              />
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {/* Additional Information */}
-              <div className={`card ${isDark ? 'bg-gray-700' : 'bg-base-200'} p-4 md:p-6 shadow-md`}>
-                <h3 className={`text-lg md:text-xl font-semibold mb-6 flex items-center gap-2 ${isDark ? 'text-gray-100' : ''}`}>
-                  <Lightbulb className={`w-5 h-5 ${isDark ? 'text-yellow-300' : 'text-warning'}`} />
-                  Additional Information
-                </h3>
-                <div className="space-y-6">
-                  <div className="form-control">
-                    <label className="label">
-                      <span className={`label-text font-medium ${isDark ? 'text-gray-300' : ''}`}>Constraints</span>
-                    </label>
-                    <textarea
-                      className={`textarea textarea-bordered min-h-24 w-full p-3 resize-y ${
-                        isDark ? 'bg-gray-700 border-gray-600 text-white' : ''
-                      }`}
-                      {...register("constraints")}
-                      placeholder="Enter problem constraints"
-                    />
-                    {errors.constraints && (
+                  <div className="space-y-6">
+                    <div className="form-control">
                       <label className="label">
-                        <span className="label-text-alt text-error">
-                          {errors.constraints.message}
+                        <span className={`label-text font-bold text-lg ${
+                          isDark ? 'text-gray-300' : 'text-gray-700'
+                        }`}>
+                          Constraints *
                         </span>
                       </label>
-                    )}
-                  </div>
-                  <div className="form-control">
-                    <label className="label">
-                      <span className={`label-text font-medium ${isDark ? 'text-gray-300' : ''}`}>
-                        Hints (Optional)
-                      </span>
-                    </label>
-                    <textarea
-                      className={`textarea textarea-bordered min-h-24 w-full p-3 resize-y ${
-                        isDark ? 'bg-gray-700 border-gray-600 text-white' : ''
-                      }`}
-                      {...register("hints")}
-                      placeholder="Enter hints for solving the problem"
-                    />
-                  </div>
-                  <div className="form-control">
-                    <label className="label">
-                      <span className={`label-text font-medium ${isDark ? 'text-gray-300' : ''}`}>
-                        Editorial (Optional)
-                      </span>
-                    </label>
-                    <textarea
-                      className={`textarea textarea-bordered min-h-32 w-full p-3 resize-y ${
-                        isDark ? 'bg-gray-700 border-gray-600 text-white' : ''
-                      }`}
-                      {...register("editorial")}
-                      placeholder="Enter problem editorial/solution explanation"
-                    />
+                      <textarea
+                        className={`textarea textarea-bordered min-h-24 w-full p-3 resize-y font-mono transition-all duration-200 focus:scale-105 ${
+                          isDark 
+                            ? 'bg-gray-700 border-gray-600 text-white focus:border-red-500' 
+                            : 'bg-white border-gray-300 text-gray-900 focus:border-red-500'
+                        }`}
+                        {...register("constraints")}
+                        placeholder="Enter problem constraints"
+                      />
+                    </div>
+                    <div className="form-control">
+                      <label className="label">
+                        <span className={`label-text font-bold text-lg ${
+                          isDark ? 'text-gray-300' : 'text-gray-700'
+                        }`}>
+                          Hints (Optional)
+                        </span>
+                      </label>
+                      <textarea
+                        className={`textarea textarea-bordered min-h-24 w-full p-3 resize-y transition-all duration-200 focus:scale-105 ${
+                          isDark 
+                            ? 'bg-gray-700 border-gray-600 text-white focus:border-blue-500' 
+                            : 'bg-white border-gray-300 text-gray-900 focus:border-blue-500'
+                        }`}
+                        {...register("hints")}
+                        placeholder="Enter hints for solving the problem"
+                      />
+                    </div>
+                    <div className="form-control">
+                      <label className="label">
+                        <span className={`label-text font-bold text-lg ${
+                          isDark ? 'text-gray-300' : 'text-gray-700'
+                        }`}>
+                          Editorial (Optional)
+                        </span>
+                      </label>
+                      <textarea
+                        className={`textarea textarea-bordered min-h-32 w-full p-3 resize-y transition-all duration-200 focus:scale-105 ${
+                          isDark 
+                            ? 'bg-gray-700 border-gray-600 text-white focus:border-blue-500' 
+                            : 'bg-white border-gray-300 text-gray-900 focus:border-blue-500'
+                        }`}
+                        {...register("editorial")}
+                        placeholder="Enter problem editorial/solution explanation"
+                      />
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              <div className={`card-actions justify-end pt-4 border-t border-gray-200 dark:border-gray-700`}>
-                <button 
-                  type="submit" 
-                  className="btn bg-red-600 hover:bg-red-700 text-white dark:bg-red-700 dark:hover:bg-red-800 btn-lg gap-2"
-                  disabled={isLoading}
-                >
-                  {isLoading ? (
-                    <span className="loading loading-spinner"></span>
-                  ) : (
-                    <>
-                      <CheckCircle2 className="w-5 h-5" />
-                      {isEditing ? 'Update Problem' : 'Create Problem'}
-                    </>
-                  )}
-                </button>
-              </div>
-            </form>
+                {/* Submit Button */}
+                <div className={`w-full flex justify-end pt-8 border-t-2 ${
+                  isDark ? 'border-gray-700' : 'border-gray-200'
+                }`}>
+                  <button 
+                    type="submit" 
+                    className={`btn btn-lg px-8 py-4 font-bold text-lg shadow-xl transition-all duration-300 hover:scale-105 ${
+                      isDark 
+                        ? 'bg-blue-600  hover:bg-red-600 text-white font-bold border-2 ' 
+                        : 'bg-blue-600  hover:bg-red-600 text-white font-bold border-2 '
+                    }`}
+                    disabled={isLoading}
+                  >
+                    {isLoading ? (
+                      <span className="flex items-center gap-3">
+                        <span className="loading loading-spinner loading-md"></span>
+                        Processing...
+                      </span>
+                    ) : (
+                      <span className="flex items-center gap-3">
+                        <CheckCircle2 className="w-6 h-6" />
+                        {isEditing ? 'Update Problem' : 'Create Problem'}
+                      </span>
+                    )}
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
         </div>
       </div>

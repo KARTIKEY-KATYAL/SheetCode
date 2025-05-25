@@ -7,6 +7,7 @@ export const useSubmissionStore = create((set, get) => ({
   submissions: [],
   submission: null,
   submissionCount: null,
+  userLastSubmission: null,
 
   getAllSubmissions: async () => {
     try {
@@ -30,7 +31,7 @@ export const useSubmissionStore = create((set, get) => ({
       const res = await axiosInstance.get(
         `/submission/get-submission/${problemId}`
       );
-      
+
       // Set submissions directly from response data
       set({ submission: res.data.data });
       return res.data.data; // Return for any components that want to use the data directly
@@ -47,12 +48,29 @@ export const useSubmissionStore = create((set, get) => ({
     try {
       const res = await axiosInstance.get(
         `/submission/get-submissions-count/${problemId}`
-      );                
-      // console.log(res.data)
+      );
       set({ submissionCount: res.data.data.count });
     } catch (error) {
       console.log("Error getting submission count for problem", error);
       toast.error("Error getting submission count for problem");
     }
   },
+
+  getUserLastSubmission: async (problemId) => {
+    try {
+      // Fix the API endpoint to match your backend routes
+      const response = await axiosInstance.get(
+        `/submission/get-user-last-submission/${problemId}`
+      );
+      const lastSubmission = response.data.data || response.data;
+      set({ userLastSubmission: lastSubmission });
+      return lastSubmission;
+    } catch (error) {
+      console.error("Error fetching user's last submission:", error);
+      set({ userLastSubmission: null });
+      return null;
+    }
+  },
+
+  clearUserLastSubmission: () => set({ userLastSubmission: null }),
 }));
