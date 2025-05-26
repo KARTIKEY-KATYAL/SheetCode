@@ -12,7 +12,12 @@ app.use(express.json());
 app.use(CookieParser());
 app.use(express.urlencoded());
 app.use(cors({
-  origin:process.env.FRONTEND_URL,
+  origin: [
+    process.env.FRONTEND_URL,
+    "https://www.sheetcode.in",
+    "https://sheetcode.in", 
+    "http://localhost:5173" // for development
+  ],
   credentials: true,
 }))
 app.get('/', (req, res) => {
