@@ -1,6 +1,6 @@
 import axios from "axios";
 
 export const axiosInstance = axios.create({
-  baseURL: import.meta.env.MODE === "development" ? "http://localhost:8080/api/v1" : "https://sheetcode-backend.onrender.com",
+  baseURL: import.meta.env.MODE === "development" ? "http://localhost:8080/api/v1" : "https://www.sheetcode.in",
   withCredentials: true,
 });
