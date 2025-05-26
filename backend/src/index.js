@@ -8,9 +8,24 @@ const app = express();
 
 const port = process.env.PORT || 8000;
 
+// Handle preflight requests first
+app.options('*', cors({
+  origin: [
+    process.env.FRONTEND_URL,
+    "https://www.sheetcode.in",
+    "https://sheetcode.in", 
+    "http://localhost:5173"
+  ],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Cookie'],
+}));
+
 app.use(express.json());
 app.use(CookieParser());
-app.use(express.urlencoded());
+app.use(express.urlencoded({ extended: true })); // Fix: Added extended: true
+
+// Main CORS configuration
 app.use(cors({
   origin: [
     process.env.FRONTEND_URL,
@@ -19,7 +34,11 @@ app.use(cors({
     "http://localhost:5173" // for development
   ],
   credentials: true,
-}))
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Cookie'],
+  exposedHeaders: ['Set-Cookie']
+}));
+
 app.get('/', (req, res) => {
   res.send('ok!');
 });
