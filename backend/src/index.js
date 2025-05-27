@@ -39,7 +39,7 @@ app.use(cors({
   exposedHeaders: ['Set-Cookie']
 }));
 
-app.get('/', (req, res) => {
+app.get('/', (_, res) => {
   res.send('ok!');
 });
 
