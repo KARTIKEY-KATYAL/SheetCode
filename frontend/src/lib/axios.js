@@ -1,6 +1,7 @@
 import axios from 'axios';
 
-const API_URL = import.meta.env.VITE_API_URL || 'https://api.sheetcode.in';
+// Use IP address instead of subdomain
+const API_URL = import.meta.env.VITE_API_URL || 'http://159.65.146.33/api/v1';
 
 export const axiosInstance = axios.create({
   baseURL: API_URL,
