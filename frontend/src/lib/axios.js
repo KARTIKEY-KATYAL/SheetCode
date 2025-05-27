@@ -1,6 +1,9 @@
-import axios from "axios";
+import axios from 'axios';
 
 export const axiosInstance = axios.create({
-  baseURL: import.meta.env.MODE === "development" ? "http://localhost:8000/api/v1" : "https://sheetcode.onrender.com/api/v1",
+  baseURL: process.env.NODE_ENV === 'production' 
+    ? 'http://159.65.146.33/api/v1'  // Production backend URL
+    : 'http://localhost:8080/api/v1', // Development backend URL
   withCredentials: true,
+  timeout: 10000,
 });
