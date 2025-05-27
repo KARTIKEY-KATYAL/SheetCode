@@ -4,8 +4,12 @@ set -e
 
 echo "🚀 Starting deployment on 159.65.146.33..."
 
-# Pull latest changes
-git pull origin main
+# Get current branch name
+BRANCH=$(git rev-parse --abbrev-ref HEAD)
+echo "📂 Current branch: $BRANCH"
+
+# Pull latest changes from current branch
+git pull origin $BRANCH
 
 # Stop existing containers
 echo "⏹️ Stopping existing containers..."
