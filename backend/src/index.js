@@ -5,16 +5,15 @@ import cors from "cors"
 dotenv.config();
 
 const app = express();
-
 const port = process.env.PORT || 8000;
 
 // Handle preflight requests first
 app.options('*', cors({
   origin: [
-    process.env.FRONTEND_URL,
+    "https://sheetcode.in",
     "https://www.sheetcode.in",
-    "https://sheetcode.in", 
-    "http://localhost:5173"
+    "https://api.sheetcode.in",
+    "http://localhost:5173" // for development
   ],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
@@ -23,14 +22,14 @@ app.options('*', cors({
 
 app.use(express.json());
 app.use(CookieParser());
-app.use(express.urlencoded({ extended: true })); // Fix: Added extended: true
+app.use(express.urlencoded({ extended: true }));
 
 // Main CORS configuration
 app.use(cors({
   origin: [
-    process.env.FRONTEND_URL,
-    "https://www.sheetcode.in",
-    "https://sheetcode.in", 
+    "https://sheetcode.in",
+    "https://www.sheetcode.in", 
+    "https://api.sheetcode.in",
     "http://localhost:5173" // for development
   ],
   credentials: true,
@@ -40,7 +39,7 @@ app.use(cors({
 }));
 
 app.get('/', (_, res) => {
-  res.send('ok!');
+  res.send('SheetCode API is running! 🚀');
 });
 
 import authRoutes from './routes/auth.routes.js';
@@ -58,5 +57,5 @@ app.use('/api/v1/submission', submissionRoutes);
 app.use('/api/v1/playlist', playlistRoutes);
 
 app.listen(port, () => {
-  console.log(`Server Started on PORT : ${port}`);
+  console.log(`🚀 SheetCode API Server running on PORT: ${port}`);
 });
