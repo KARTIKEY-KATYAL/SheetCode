@@ -254,9 +254,13 @@ function Profile() {
     <div className="min-h-screen bg-slate-100 dark:bg-slate-900 text-black dark:text-white">
       {/* Hero Banner with Personal Details */}
       <section className="relative overflow-hidden">
-        {/* Background with animation */}
-        <div className="absolute inset-0 bg-gradient-to-r from-red-600 to-blue-700 overflow-hidden">
+        {/* Updated Background with red-blue-black theme */}
+        <div className="absolute inset-0 bg-gradient-to-br from-gray-900 via-red-900 to-blue-900 overflow-hidden">
+          {/* Animated overlay pattern */}
+          <div className="absolute inset-0 bg-gradient-to-r from-red-600/20 via-transparent to-blue-600/20"></div>
           <div className="absolute -inset-[10px] bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmZmZmYiIGZpbGwtb3BhY2l0eT0iMC4xIj48cGF0aCBkPSJNMzYgMzRjMC0yLjIxLTEuNzktNC00LTRzLTQgMS43OS00IDQgMS43OSA0IDQgNCAzLjk4LTEuNzggNC00ek02MCAxMmMwIDYuNjQtNS4zOCAxMi0xMiAxMi02LjY0IDAtMTItNS4zNi0xMi0xMkMzNiA1LjM2IDQxLjM2IDAgNDggMGM2LjYyIDAgMTIgNS4zNiAxMiAxMnptLTI0IDZjMC00LjQyLTMuNTgtOC04LThzLTggMy41OC04IDggMy41OCA4IDggOGM0LjQyIDAgOC0zLjU4IDgtOHoiLz48L2c+PC9nPjwvc3ZnPg==')] opacity-10 animate-[spin_80s_linear_infinite]"></div>
+          {/* Additional geometric overlay */}
+          <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-tl from-black/30 via-transparent to-red-600/20"></div>
         </div>
         
         <div className="container mx-auto relative z-10">
@@ -350,31 +354,31 @@ function Profile() {
             </div>
             
             {/* Stats Cards - Desktop */}
-            <div className="hidden md:flex flex-col gap-4 min-w-[260px] backdrop-blur-md bg-white/20 p-6 rounded-2xl border border-white/30 shadow-lg">
+            <div className="hidden md:flex flex-col gap-4 min-w-[260px] backdrop-blur-md bg-black/20 border border-red-500/30 p-6 rounded-2xl shadow-xl">
               <div className="grid grid-cols-2 gap-4">
-                <div className="text-center p-3 bg-white/20 rounded-xl">
+                <div className="text-center p-3 bg-red-600/20 border border-red-500/30 rounded-xl backdrop-blur-sm">
                   <div className="text-3xl font-bold text-white">{stats.totalSolved}</div>
                   <div className="text-sm text-white/80 font-medium">Problems Solved</div>
                 </div>
-                <div className="text-center p-3 bg-white/20 rounded-xl">
+                <div className="text-center p-3 bg-blue-600/20 border border-blue-500/30 rounded-xl backdrop-blur-sm">
                   <div className="text-3xl font-bold text-white">{stats.sheetsCreated}</div>
                   <div className="text-sm text-white/80 font-medium">Study Sheets</div>
                 </div>
               </div>
               
-              <div className="w-full bg-white/20 h-2 rounded-full mt-2">
+              <div className="w-full bg-black/30 border border-gray-500/30 h-2 rounded-full mt-2">
                 {stats.totalSolved > 0 && (
                   <div className="flex h-full rounded-full overflow-hidden">
                     <div 
-                      className="bg-green-500" 
+                      className="bg-gradient-to-r from-green-500 to-green-400" 
                       style={{width: `${(stats.easy / stats.totalSolved) * 100}%`}}
                     ></div>
                     <div 
-                      className="bg-yellow-500" 
+                      className="bg-gradient-to-r from-yellow-500 to-orange-400" 
                       style={{width: `${(stats.medium / stats.totalSolved) * 100}%`}}
                     ></div>
                     <div 
-                      className="bg-red-500" 
+                      className="bg-gradient-to-r from-red-500 to-red-400" 
                       style={{width: `${(stats.hard / stats.totalSolved) * 100}%`}}
                     ></div>
                   </div>
@@ -399,7 +403,7 @@ function Profile() {
           </div>
         </div>
         
-        {/* Wave Divider */}
+        {/* Wave Divider - Updated color */}
         <div className="absolute bottom-0 left-0 right-0">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 80" className="fill-slate-100 dark:fill-slate-900 w-full h-16">
             <path d="M0,64L80,64C160,64,320,64,480,53.3C640,43,800,21,960,16C1120,11,1280,21,1360,26.7L1440,32L1440,320L1360,320C1280,320,1120,320,960,320C800,320,640,320,480,320C320,320,160,320,80,320L0,320Z"></path>
