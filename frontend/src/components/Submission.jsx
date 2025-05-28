@@ -22,6 +22,42 @@ const SubmissionResults = ({ submission }) => {
   const timeArray = safeParse(submission.time || "[]");
   const memoryArray = safeParse(submission.memory || "[]");
 
+  // Calculate average time
+  const calculateAverageTime = () => {
+    if (!timeArray || timeArray.length === 0) return 'N/A';
+    
+    const timeValues = timeArray.map(time => {
+      // Handle both "0.001 s" format and plain numbers
+      if (typeof time === 'string') {
+        return parseFloat(time.split(' ')[0]) * 1000; // Convert seconds to milliseconds
+      }
+      return parseFloat(time) * 1000; // Convert seconds to milliseconds
+    }).filter(time => !isNaN(time));
+    
+    if (timeValues.length === 0) return 'N/A';
+    
+    const avgTime = timeValues.reduce((acc, curr) => acc + curr, 0) / timeValues.length;
+    return avgTime.toFixed(2);
+  };
+
+  // Calculate average memory
+  const calculateAverageMemory = () => {
+    if (!memoryArray || memoryArray.length === 0) return 'N/A';
+    
+    const memoryValues = memoryArray.map(memory => {
+      // Handle both "1024 KB" format and plain numbers
+      if (typeof memory === 'string') {
+        return parseFloat(memory.split(' ')[0]);
+      }
+      return parseFloat(memory);
+    }).filter(memory => !isNaN(memory));
+    
+    if (memoryValues.length === 0) return 'N/A';
+    
+    const avgMemory = memoryValues.reduce((acc, curr) => acc + curr, 0) / memoryValues.length;
+    return avgMemory.toFixed(2);
+  };
+
   return (
     <div className="space-y-6">
       {/* Overall Status Header */}
@@ -83,7 +119,7 @@ const SubmissionResults = ({ submission }) => {
             <div>
               <p className="text-sm text-gray-600 dark:text-gray-400">Avg Runtime</p>
               <p className="text-lg font-bold text-blue-600 dark:text-blue-400">
-                {submission.avgTime || 'N/A'}ms
+                {calculateAverageTime()} ms
               </p>
             </div>
           </div>
@@ -92,12 +128,12 @@ const SubmissionResults = ({ submission }) => {
         <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg border-2 border-gray-200 dark:border-gray-700">
           <div className="flex items-center gap-3">
             <div className="p-3 rounded-lg bg-red-100 dark:bg-red-900/30">
-              <Code className="w-6 h-6 text-red-600 dark:text-red-400" />
+              <MemoryStick className="w-6 h-6 text-red-600 dark:text-red-400" />
             </div>
             <div>
-              <p className="text-sm text-gray-600 dark:text-gray-400">Language</p>
+              <p className="text-sm text-gray-600 dark:text-gray-400">Avg Memory</p>
               <p className="text-lg font-bold text-red-600 dark:text-red-400">
-                {submission.language}
+                {calculateAverageMemory()} KB
               </p>
             </div>
           </div>

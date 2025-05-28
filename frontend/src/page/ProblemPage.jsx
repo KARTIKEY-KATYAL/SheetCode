@@ -34,7 +34,7 @@ import SubmissionList from "../components/SubmissionList"
 
 const ProblemPage = () => {
   const { id } = useParams();
-  const { getProblemById, problem, isProblemLoading } = useProblemStore();
+  const { getProblemById, problem, isProblemLoading, getProblemStats, problemStats } = useProblemStore();
   const [code, setCode] = useState("");
   const [activeTab, setActiveTab] = useState("description");
   const [selectedLanguage, setSelectedLanguage] = useState("JAVASCRIPT");
@@ -59,6 +59,7 @@ const ProblemPage = () => {
   useEffect(() => {
     getProblemById(id);
     getSubmissionCountForProblem(id);
+    getProblemStats(id); // Fetch actual stats
     loadUserLastSubmission();
     
     // Cleanup when component unmounts
@@ -157,6 +158,22 @@ const ProblemPage = () => {
     }
   };
 
+  const calculateSuccessRate = () => {
+    if (problemStats && problemStats.totalSubmissions > 0) {
+      return `${problemStats.successRate}%`;
+    }
+    
+    // Fallback calculation if stats not available
+    if (!submissionCount || submissionCount === 0) {
+      return "0%";
+    }
+    
+    // Estimate based on difficulty
+    const estimatedRate = problem.difficulty === 'EASY' ? 75 : 
+                         problem.difficulty === 'MEDIUM' ? 45 : 25;
+    return `${estimatedRate}%`;
+  };
+
   const renderTabContent = () => {
     switch (activeTab) {
       case "description":
@@ -189,7 +206,7 @@ const ProblemPage = () => {
                   <Award className="w-6 h-6" />
                   <div>
                     <p className="text-sm opacity-90">Success Rate</p>
-                    <p className="text-lg font-bold">95%</p>
+                    <p className="text-lg font-bold">{calculateSuccessRate()}</p>
                   </div>
                 </div>
               </div>
@@ -257,7 +274,7 @@ const ProblemPage = () => {
                   <Zap className="w-5 h-5 text-yellow-600 dark:text-yellow-400" />
                   Constraints
                 </h3>
-                <div className="bg-gray-50 dark:bg-gray-900/50 p-4 rounded-lg border-l-4 border-yellow-500">
+                <div className="bg-gray-50 dark:bg-yellow-900/20 p-4 rounded-lg border-l-4 border-yellow-500">
                   <pre className="text-gray-700 dark:text-gray-300 font-mono text-sm whitespace-pre-wrap">
                     {problem.constraints}
                   </pre>
@@ -514,10 +531,10 @@ const ProblemPage = () => {
           </nav>
 
           <div className="max-w-7xl mx-auto p-6">
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
-              {/* Left: Description / Tabs */}
-              <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border-2 border-gray-200 dark:border-gray-700 overflow-hidden">
-                <div className="border-b-2 border-gray-200 dark:border-gray-700">
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-8 h-[calc(100vh-120px)]">
+              {/* Left: Description / Tabs - Updated with flex layout */}
+              <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border-2 border-gray-200 dark:border-gray-700 overflow-hidden flex flex-col h-full">
+                <div className="border-b-2 border-gray-200 dark:border-gray-700 flex-shrink-0">
                   <div className="flex">
                     {["description", "submissions", "discussion", "hints"].map(tab => (
                       <button
@@ -540,14 +557,15 @@ const ProblemPage = () => {
                     ))}
                   </div>
                 </div>
-                <div className="p-6 overflow-y-auto max-h-[calc(100vh-250px)]">
+                {/* Updated content area to fill remaining space */}
+                <div className="flex-1 overflow-y-auto p-6">
                   {renderTabContent()}
                 </div>
               </div>
 
-              {/* Right: Code Editor */}
-              <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border-2 border-gray-200 dark:border-gray-700 overflow-hidden">
-                <div className="bg-gray-800 px-6 py-4 border-b-2 border-gray-700">
+              {/* Right: Code Editor - Updated with matching height */}
+              <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border-2 border-gray-200 dark:border-gray-700 overflow-hidden flex flex-col h-full">
+                <div className="bg-gray-800 px-6 py-4 border-b-2 border-gray-700 flex-shrink-0">
                   <div className="flex justify-between items-center">
                     <div className="flex items-center gap-3">
                       <Terminal className="w-5 h-5 text-blue-400" />
@@ -571,7 +589,7 @@ const ProblemPage = () => {
                         onClick={resetToStarterCode}
                         title="Reset to starter code"
                       >
-                        <RotateCcw className="w-5 h-5 rounded-2xl" />
+                        <RotateCcw className="w-3 h-3" />
                       </button>
 
                       <button
@@ -579,13 +597,14 @@ const ProblemPage = () => {
                         onClick={toggleFullScreen}
                         title="Open in full screen"
                       >
-                        <Maximize2 className="w-5 h-5 rounded-2xl" />
+                        <Maximize2 className="w-3 h-3" />
                       </button>
                     </div>
                   </div>
                 </div>
 
-                <div className="h-[600px] w-full">
+                {/* Updated editor to fill remaining space */}
+                <div className="flex-1 w-full">
                   <Editor
                     height="100%"
                     language={selectedLanguage.toLowerCase()}
@@ -604,7 +623,7 @@ const ProblemPage = () => {
                   />
                 </div>
 
-                <div className="bg-gray-50 dark:bg-gray-800 p-6 border-t-2 border-gray-200 dark:border-gray-700">
+                <div className="bg-gray-50 dark:bg-gray-800 p-6 border-t-2 border-gray-200 dark:border-gray-700 flex-shrink-0">
                   <div className="flex justify-between items-center">
                     <button 
                       className={`btn bg-blue-600 hover:bg-blue-700 text-white gap-2 border-0 shadow-lg transition-all duration-200 ${isExecuting ? "loading" : ""}`}
@@ -632,7 +651,7 @@ const ProblemPage = () => {
             </div>
 
             {/* Enhanced Submission Results / Test Cases */}
-            <div className="mt-8 bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border-2 border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div className="mt-4 bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border-2 border-gray-200 dark:border-gray-700 overflow-hidden">
               <div className="bg-blue-600 px-6 py-4">
                 <h3 className="text-xl font-bold text-white flex items-center gap-2">
                   {submission ? (

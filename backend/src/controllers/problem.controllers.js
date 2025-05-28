@@ -376,3 +376,23 @@ export const getSolvedProblems = asyncHandler(async (req, res) => {
       .json(new ApiError(500, 'Error while fetching solved problems'));
   }
 });
+
+export const getProblemStats = asyncHandler(async (req, res) => {
+  const { problemId } = req.params;
+
+  try {
+    // Fetch problem statistics from the database
+    const problemStats = await db.problemStats.findUnique({
+      where: { problemId },
+    });
+
+    if (!problemStats) {
+      return res.status(404).json(new ApiError(404, 'Problem stats not found'));
+    }
+
+    res.status(200).json(new ApiResponse(200, problemStats, 'Problem stats fetched successfully'));
+  } catch (error) {
+    console.error('Error fetching problem stats:', error);
+    return res.status(500).json(new ApiError(500, 'Error while fetching problem stats'));
+  }
+});

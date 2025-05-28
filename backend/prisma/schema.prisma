@@ -77,8 +77,11 @@ model TestCaseResult {
   submissionId  String
   testCase      Int
   passed        Boolean
+  input         String?    // ✅ Add this field if missing
   stdout        String?
   expected      String
+  expectedOutput String?   // ✅ Alternative field name
+  actualOutput  String?   // ✅ Add this field if missing
   stderr        String?
   compileOutput String?
   status        String

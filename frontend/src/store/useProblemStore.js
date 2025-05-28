@@ -9,6 +9,7 @@ export const useProblemStore = create((set, get) => ({
   isProblemsLoading: false,
   isProblemLoading: false,
   currentProblem: null,
+  problemStats: null,
 
   getAllProblems: async () => {
     try {
@@ -94,5 +95,50 @@ export const useProblemStore = create((set, get) => ({
     }
   },
 
+  getProblemStats: async (problemId) => {
+    try {
+      const response = await axiosInstance.get(`/problems/${problemId}/stats`);
+      set({ problemStats: response.data.data });
+      return response.data.data;
+    } catch (error) {
+      console.error("Error fetching problem stats:", error);
+      return null;
+    }
+  },
+
   clearCurrentProblem: () => set({ currentProblem: null }),
 }));
+
+// Update your ProblemPage component
+const ProblemPage = () => {
+  // ... existing code
+  const { getProblemById, problem, isProblemLoading, getProblemStats, problemStats } = useProblemStore();
+  
+  useEffect(() => {
+    getProblemById(id);
+    getSubmissionCountForProblem(id);
+    getProblemStats(id); // Fetch actual stats
+    loadUserLastSubmission();
+    
+    return () => {
+      clearUserLastSubmission();
+    };
+  }, [id]);
+  
+  // Updated success rate calculation with real data
+  const calculateSuccessRate = () => {
+    if (problemStats && problemStats.totalSubmissions > 0) {
+      return `${problemStats.successRate}%`;
+    }
+    
+    // Fallback calculation if stats not available
+    if (!submissionCount || submissionCount === 0) {
+      return "0%";
+    }
+    
+    // Estimate based on difficulty
+    const estimatedRate = problem.difficulty === 'EASY' ? 75 : 
+                         problem.difficulty === 'MEDIUM' ? 45 : 25;
+    return `${estimatedRate}%`;
+  };
+}

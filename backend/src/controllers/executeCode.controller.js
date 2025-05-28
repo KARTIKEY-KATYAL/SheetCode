@@ -90,16 +90,35 @@ export const executeCode = asyncHandler(async (req, res) => {
       stderr: detailedResults.some((r) => r.stderr)
         ? JSON.stringify(detailedResults.map((r) => r.stderr))
         : null,
+      time: detailedResults.some((r) => r.time)
+        ? JSON.stringify(detailedResults.map((r) => r.time))
+        : null,
+      memory: detailedResults.some((r) => r.memory)
+        ? JSON.stringify(detailedResults.map((r) => r.memory))
+        : null,
       compileOutput: detailedResults.some((r) => r.compile_output)
         ? JSON.stringify(detailedResults.map((r) => r.compile_output))
         : null,
       status: allPassed ? 'Accepted' : 'Wrong Answer',
-      memory: detailedResults.some((r) => r.memory)
-        ? JSON.stringify(detailedResults.map((r) => r.memory))
-        : null,
-      time: detailedResults.some((r) => r.time)
-        ? JSON.stringify(detailedResults.map((r) => r.time))
-        : null,
+      testCases: {
+        create: detailedResults.map((result, index) => ({
+          testCase: result.testCase,
+          passed: result.passed,
+          input: stdin[index], // ✅ Add this line - store the actual input
+          expectedOutput: expected_outputs[index], // ✅ Make sure this matches your schema
+          actualOutput: result.stdout,
+          stdout: result.stdout, // ✅ Keep this for compatibility
+          expected: expected_outputs[index], // ✅ Keep this for compatibility  
+          stderr: result.stderr,
+          time: result.time,
+          memory: result.memory,
+          compileOutput: result.compile_output,
+          status: result.status,
+        })),
+      },
+    },
+    include: {
+      testCases: true,
     },
   });
 
