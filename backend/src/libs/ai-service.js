@@ -664,3 +664,96 @@ Return ONLY the JSON object with no additional text.`;
     };
   }
 };
+
+/**
+ * Generate comprehensive profile analysis
+ */
+export const generateProfileAnalysis = async ({
+  totalSolved,
+  easyCount,
+  mediumCount,
+  hardCount,
+  sheetsCreated,
+  totalProblemsInSheets,
+  userLeague,
+  joinDate,
+  recentActivity,
+  difficultyDistribution
+}) => {
+  const systemPrompt = `You are an expert coding mentor and career advisor who provides comprehensive, personalized analysis of programming profiles.
+
+GUIDELINES:
+1. Provide detailed, encouraging, and actionable insights
+2. Write in flowing paragraphs, not bullet points
+3. Be specific about patterns you observe
+4. Give concrete recommendations
+5. Maintain an encouraging and professional tone
+6. Focus on growth and improvement opportunities
+
+Respond with ONLY valid JSON in this format:
+{
+  "overallPerformance": "detailed paragraph about overall coding journey and progress",
+  "strengths": "paragraph highlighting key strengths and positive patterns",
+  "weaknesses": "paragraph about areas needing improvement (frame positively)",
+  "recommendations": "paragraph with specific, actionable recommendations",
+  "studyStrategy": "paragraph with personalized study approach and next steps"
+}`;
+
+  const accountAge = Math.floor((new Date() - new Date(joinDate)) / (1000 * 60 * 60 * 24));
+  const problemsPerDay = totalSolved > 0 ? (totalSolved / Math.max(accountAge, 1)).toFixed(2) : 0;
+  
+  const userPrompt = `Analyze this coding profile:
+
+SOLVING STATISTICS:
+- Total Problems Solved: ${totalSolved}
+- Easy: ${easyCount} (${totalSolved > 0 ? Math.round((easyCount/totalSolved)*100) : 0}%)
+- Medium: ${mediumCount} (${totalSolved > 0 ? Math.round((mediumCount/totalSolved)*100) : 0}%)
+- Hard: ${hardCount} (${totalSolved > 0 ? Math.round((hardCount/totalSolved)*100) : 0}%)
+
+ORGANIZATION & PLANNING:
+- Study Sheets Created: ${sheetsCreated}
+- Problems in Sheets: ${totalProblemsInSheets}
+- Current League: ${userLeague}
+
+ACTIVITY METRICS:
+- Account Age: ${accountAge} days
+- Average Problems/Day: ${problemsPerDay}
+- Recent Activity: ${recentActivity.length} recent submissions
+
+Provide comprehensive analysis focusing on:
+1. Overall coding journey assessment and progress evaluation
+2. Strength identification based on solving patterns and consistency
+3. Growth areas and improvement opportunities
+4. Specific recommendations for skill development
+5. Personalized study strategy and roadmap
+
+Make each section a flowing paragraph with specific insights and actionable advice.`;
+
+  try {
+    const responseText = await generateAIResponse(systemPrompt, userPrompt, {
+      maxTokens: 1500,
+      temperature: 0.7,
+    });
+    
+    const analysis = extractJSON(responseText);
+    
+    // Validate required fields
+    if (!analysis.overallPerformance) {
+      throw new Error('Missing overall performance analysis');
+    }
+    
+    return analysis;
+    
+  } catch (error) {
+    console.error('Error generating profile analysis:', error);
+    
+    // Return fallback analysis
+    return {
+      overallPerformance: `Your coding journey shows dedication with ${totalSolved} problems solved across different difficulty levels. ${userLeague} league status indicates steady progress, and your ${problemsPerDay} average problems per day demonstrates consistent engagement with algorithmic challenges.`,
+      strengths: `Your problem-solving consistency and willingness to tackle ${totalSolved > 0 ? 'diverse' : 'new'} challenges shows strong determination. The balanced approach to different difficulty levels indicates good learning strategy and gradual skill building.`,
+      weaknesses: `Consider expanding your problem-solving range by exploring more diverse topics and gradually increasing difficulty levels. Focus on building systematic approaches to complex algorithmic challenges.`,
+      recommendations: `Continue your current learning momentum while gradually increasing problem complexity. Create more study sheets to organize topics systematically and track progress in specific algorithmic areas.`,
+      studyStrategy: `Maintain consistent daily practice with a mix of review and new challenges. Focus on understanding patterns rather than just solving individual problems, and consider participating in coding competitions to test skills under pressure.`
+    };
+  }
+};

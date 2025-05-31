@@ -4,11 +4,12 @@ import { ApiError } from '../libs/api-error.js';
 import { 
   generateProblemDiscussionResponse, 
   generateProblemHints, 
-  generateSubmissionAnalysis 
+  generateSubmissionAnalysis,
+  generateProfileAnalysis
 } from '../libs/ai-service.js';
 
 /**
- * Handle problem discussion chat
+ * Problem discussion chat endpoint
  */
 export const problemDiscussion = asyncHandler(async (req, res) => {
   const { 
@@ -17,11 +18,11 @@ export const problemDiscussion = asyncHandler(async (req, res) => {
     problemDescription, 
     difficulty, 
     tags, 
-    userMessage, 
+    userMessage,
     chatHistory 
   } = req.body;
 
-  console.log('Chat request received:', { problemId, problemTitle, userMessage });
+  console.log('Problem discussion request:', { problemId, problemTitle, userMessage });
 
   if (!problemId || !problemTitle || !userMessage) {
     return res.status(400).json(
@@ -30,7 +31,7 @@ export const problemDiscussion = asyncHandler(async (req, res) => {
   }
 
   try {
-    const aiResponse = await generateProblemDiscussionResponse({
+    const response = await generateProblemDiscussionResponse({
       problemTitle,
       problemDescription,
       difficulty,
@@ -39,10 +40,10 @@ export const problemDiscussion = asyncHandler(async (req, res) => {
       chatHistory: chatHistory || []
     });
 
-    console.log('AI response generated successfully');
+    console.log('Discussion response generated successfully');
 
     res.status(200).json(
-      new ApiResponse(200, { response: aiResponse }, 'AI response generated successfully')
+      new ApiResponse(200, { response }, 'AI response generated successfully')
     );
   } catch (error) {
     console.error('Error generating discussion response:', error);
@@ -53,9 +54,9 @@ export const problemDiscussion = asyncHandler(async (req, res) => {
 });
 
 /**
- * Generate AI hint for a problem
+ * Generate AI hints for a problem
  */
-export const generateHint = asyncHandler(async (req, res) => {
+export const generateHints = asyncHandler(async (req, res) => {
   const { 
     problemId, 
     problemTitle, 
@@ -104,17 +105,17 @@ export const generateHint = asyncHandler(async (req, res) => {
  */
 export const analyzeSubmission = asyncHandler(async (req, res) => {
   const { 
-    submissionId,
     sourceCode, 
     language, 
-    status,
-    testCases,
-    averageTime,
-    averageMemory,
-    problemId
+    status, 
+    testCases, 
+    averageTime, 
+    averageMemory, 
+    submissionId, 
+    problemId 
   } = req.body;
 
-  console.log('Analysis request:', { submissionId, language, status });
+  console.log('Submission analysis request:', { submissionId, problemId, language, status });
 
   if (!sourceCode || !language) {
     return res.status(400).json(
@@ -143,6 +144,59 @@ export const analyzeSubmission = asyncHandler(async (req, res) => {
     console.error('Error generating submission analysis:', error);
     res.status(500).json(
       new ApiError(500, 'Failed to generate AI analysis')
+    );
+  }
+});
+
+/**
+ * Analyze user profile with AI
+ */
+export const analyzeProfile = asyncHandler(async (req, res) => {
+  const { 
+    userId,
+    totalSolved,
+    easyCount,
+    mediumCount,
+    hardCount,
+    sheetsCreated,
+    totalProblemsInSheets,
+    userLeague,
+    joinDate,
+    recentActivity,
+    difficultyDistribution
+  } = req.body;
+
+  console.log('Profile analysis request for user:', userId);
+
+  if (!userId) {
+    return res.status(400).json(
+      new ApiError(400, 'User ID is required')
+    );
+  }
+
+  try {
+    const analysis = await generateProfileAnalysis({
+      totalSolved,
+      easyCount,
+      mediumCount,
+      hardCount,
+      sheetsCreated,
+      totalProblemsInSheets,
+      userLeague,
+      joinDate,
+      recentActivity,
+      difficultyDistribution
+    });
+
+    console.log('Profile analysis generated successfully');
+
+    res.status(200).json(
+      new ApiResponse(200, { analysis }, 'Profile analysis generated successfully')
+    );
+  } catch (error) {
+    console.error('Error generating profile analysis:', error);
+    res.status(500).json(
+      new ApiError(500, 'Failed to generate profile analysis')
     );
   }
 });

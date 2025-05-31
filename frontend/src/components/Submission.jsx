@@ -457,64 +457,6 @@ const SubmissionResults = ({ submission }) => {
           </div>
         </div>
       )}
-
-      <style jsx>{`
-        @keyframes slideInUp {
-          from {
-            opacity: 0;
-            transform: translateY(30px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-
-        @keyframes slideInLeft {
-          from {
-            opacity: 0;
-            transform: translateX(-20px);
-          }
-          to {
-            opacity: 1;
-            transform: translateX(0);
-          }
-        }
-
-        @keyframes fadeIn {
-          from {
-            opacity: 0;
-          }
-          to {
-            opacity: 1;
-          }
-        }
-
-        @keyframes typewriter {
-          from {
-            width: 0;
-          }
-          to {
-            width: 100%;
-          }
-        }
-
-        .animate-slideInUp {
-          animation: slideInUp 0.7s ease-out;
-        }
-
-        .animate-slideInLeft {
-          animation: slideInLeft 0.6s ease-out;
-        }
-
-        .animate-fadeIn {
-          animation: fadeIn 0.8s ease-out;
-        }
-
-        .animate-typewriter {
-          animation: fadeIn 1.2s ease-out;
-        }
-      `}</style>
     </div>
   );
 };

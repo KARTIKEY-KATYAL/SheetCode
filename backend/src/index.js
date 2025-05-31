@@ -60,16 +60,6 @@ app.use('/api/v1/playlist', playlistRoutes);
 app.use('/api/v1/testcases', testcaseRoutes);
 app.use('/api/v1/chat', chatRoutes);
 
-// Add this after the route definitions to log all routes
-console.log('📚 Registered API Routes:');
-console.log('  ✅ /api/v1/health');
-console.log('  ✅ /api/v1/auth');
-console.log('  ✅ /api/v1/problems');
-console.log('  ✅ /api/v1/execute-code');
-console.log('  ✅ /api/v1/submission');
-console.log('  ✅ /api/v1/playlist');
-console.log('  ✅ /api/v1/testcases');
-console.log('  ✅ /api/v1/chat'); // This should appear
 
 app.listen(port, () => {
   console.log(`🚀 SheetCode API Server running on PORT: ${port}`);

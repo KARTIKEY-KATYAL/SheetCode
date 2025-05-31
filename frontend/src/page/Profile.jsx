@@ -29,7 +29,12 @@ import {
   Save,
   Trophy,
   Shield,
-  Medal
+  Medal,
+  Brain,
+  Sparkles,
+  Loader2,
+  Target,
+  Check
 } from 'lucide-react';
 import { axiosInstance } from "../lib/axios";
 import toast from "react-hot-toast";
@@ -41,9 +46,10 @@ function Profile() {
   const [activeTab, setActiveTab] = useState('problems');
   const [searchQuery, setSearchQuery] = useState('');
   const [difficultyFilter, setDifficultyFilter] = useState('ALL');
+  const [showAnalysis, setshowAnalysis] = useState(false)
   
-  // Profile edit state
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  // Inline editing state
+  const [editingField, setEditingField] = useState(null); // 'name', 'email', 'bio', 'github', 'linkedin', 'twitter'
   const [editForm, setEditForm] = useState({
     name: '',
     email: '',
@@ -57,9 +63,13 @@ function Profile() {
   const fileInputRef = useRef(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Initialize form when modal opens
+  // Profile analysis state
+  const [profileAnalysis, setProfileAnalysis] = useState(null);
+  const [isLoadingAnalysis, setIsLoadingAnalysis] = useState(false);
+
+  // Initialize form data
   useEffect(() => {
-    if (isEditModalOpen && authUser) {
+    if (authUser) {
       setEditForm({
         name: authUser.name || '',
         email: authUser.email || '',
@@ -70,77 +80,132 @@ function Profile() {
       });
       setAvatarPreview(authUser.avatar || null);
     }
-  }, [isEditModalOpen, authUser]);
+  }, [authUser]);
 
   // Handle avatar file change
-  const handleAvatarChange = (e) => {
+  const handleAvatarChange = async (e) => {
     const file = e.target.files[0];
     if (file) {
       setAvatarFile(file);
       const previewUrl = URL.createObjectURL(file);
       setAvatarPreview(previewUrl);
+      
+      // Auto-upload avatar
+      await handleSaveField('avatar', file);
     }
   };
 
-  // Handle form input change
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
+  // Handle field input change
+  const handleFieldChange = (field, value) => {
     setEditForm(prev => ({
       ...prev,
-      [name]: value
+      [field]: value
     }));
   };
 
-  // Handle form submission
-  const handleUpdateProfile = async (e) => {
-    e.preventDefault();
+  // Save individual field
+  const handleSaveField = async (field, value) => {
     setIsSubmitting(true);
 
     try {
-      // Create form data for multipart upload
       const formData = new FormData();
       
-      // Add basic fields
-      formData.append('name', editForm.name);
-      formData.append('email', editForm.email);
-      formData.append('bio', editForm.bio);
-      
-      // Add social links
-      formData.append('githubUrl', editForm.githubUrl);
-      formData.append('linkedinUrl', editForm.linkedinUrl);
-      formData.append('twitterUrl', editForm.twitterUrl);
-      
-      // Add avatar if changed
-      if (avatarFile) {
-        formData.append('avatar', avatarFile);
+      if (field === 'avatar') {
+        formData.append('avatar', value);
+      } else {
+        // Add all fields but update the specific one
+        formData.append('name', field === 'name' ? value : editForm.name);
+        formData.append('email', field === 'email' ? value : editForm.email);
+        formData.append('bio', field === 'bio' ? value : editForm.bio);
+        formData.append('githubUrl', field === 'githubUrl' ? value : editForm.githubUrl);
+        formData.append('linkedinUrl', field === 'linkedinUrl' ? value : editForm.linkedinUrl);
+        formData.append('twitterUrl', field === 'twitterUrl' ? value : editForm.twitterUrl);
       }
       
-      // Call the update API
       await axiosInstance.patch('/auth/update', formData, {
         headers: {
           'Content-Type': 'multipart/form-data'
         }
       });
       
-      // Update local state with Zustand
-      updateProfile({
-        ...authUser,
-        name: editForm.name,
-        email: editForm.email,
-        bio: editForm.bio,
-        githubUrl: editForm.githubUrl,
-        linkedinUrl: editForm.linkedinUrl,
-        twitterUrl: editForm.twitterUrl,
-        // Avatar will be updated through the full auth refresh
-      });
+      // Update local state
+      if (field === 'avatar') {
+        // Avatar will be updated through API response
+        toast.success('Avatar updated successfully!');
+      } else {
+        updateProfile({
+          ...authUser,
+          [field]: value
+        });
+        toast.success(`${field.charAt(0).toUpperCase() + field.slice(1)} updated successfully!`);
+      }
       
-      toast.success('Profile updated successfully!');
-      setIsEditModalOpen(false);
+      setEditingField(null);
     } catch (error) {
       console.error('Error updating profile:', error);
       toast.error(error?.response?.data?.message || 'Failed to update profile');
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  // Handle field save on Enter or button click
+  const handleFieldSubmit = (field) => {
+    const value = editForm[field];
+    if (value !== authUser[field]) {
+      handleSaveField(field, value);
+    } else {
+      setEditingField(null);
+    }
+  };
+
+  // Handle cancel editing
+  const handleCancelEdit = (field) => {
+    setEditForm(prev => ({
+      ...prev,
+      [field]: authUser[field] || ''
+    }));
+    setEditingField(null);
+  };
+
+  // Generate profile analysis
+  const generateProfileAnalysis = async () => {
+    if (isLoadingAnalysis) return;
+
+    setIsLoadingAnalysis(true);
+    
+    try {
+      const response = await axiosInstance.post('/chat/analyze-profile', {
+        userId: authUser.id,
+        totalSolved: stats.totalSolved,
+        easyCount: stats.easy,
+        mediumCount: stats.medium,
+        hardCount: stats.hard,
+        sheetsCreated: stats.sheetsCreated,
+        totalProblemsInSheets: stats.totalProblemsInSheets,
+        userLeague: authUser?.league || 'BRONZE',
+        joinDate: authUser.createdAt,
+        recentActivity: solvedProblems?.slice(-10) || [],
+        difficultyDistribution: {
+          easy: stats.easy,
+          medium: stats.medium,
+          hard: stats.hard
+        }
+      });
+      
+      setProfileAnalysis(response.data.data.analysis);
+    } catch (error) {
+      console.error('Error generating profile analysis:', error);
+      setProfileAnalysis({
+        overallPerformance: "Unable to generate detailed analysis at this time. However, based on your visible progress, you're showing dedication to improving your coding skills. Keep practicing consistently!",
+        strengths: "Your commitment to solving problems regularly demonstrates strong determination and learning mindset.",
+        weaknesses: "Consider exploring different problem types and difficulty levels to build a well-rounded skill set.",
+        recommendations: "Continue your current learning path and try to solve problems across various topics and difficulty levels.",
+        studyStrategy: "Maintain a consistent practice schedule and gradually increase problem complexity as you build confidence."
+      });
+      toast.error('Unable to generate complete analysis. Showing basic insights.');
+    } finally {
+      setIsLoadingAnalysis(false);
     }
   };
 
@@ -200,22 +265,134 @@ function Profile() {
   }
 
   // Social link rendering helper
-  const renderSocialLink = (url, Icon) => {
-    if (!url) return null;
+  const renderSocialLink = (url, Icon, field) => {
+    if (editingField === field) {
+      return (
+        <div className="flex items-center gap-2 bg-white/20 px-3 py-1.5 rounded-full">
+          <Icon className="w-4 h-4 text-white" />
+          <input
+            type="text"
+            value={editForm[field]}
+            onChange={(e) => handleFieldChange(field, e.target.value)}
+            onKeyPress={(e) => e.key === 'Enter' && handleFieldSubmit(field)}
+            className="bg-transparent text-white placeholder-white/70 text-sm outline-none border-b border-white/50 focus:border-white min-w-[200px]"
+            placeholder={`Enter ${field.replace('Url', '')} URL`}
+            autoFocus
+          />
+          <button
+            onClick={() => handleFieldSubmit(field)}
+            className="p-1 hover:bg-white/20 rounded"
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? (
+              <Loader className="w-3 h-3 animate-spin text-white" />
+            ) : (
+              <Check className="w-3 h-3 text-white" />
+            )}
+          </button>
+          <button
+            onClick={() => handleCancelEdit(field)}
+            className="p-1 hover:bg-white/20 rounded"
+          >
+            <X className="w-3 h-3 text-white" />
+          </button>
+        </div>
+      );
+    }
+    
+    if (!url) {
+      return (
+        <button
+          onClick={() => setEditingField(field)}
+          className="p-2 bg-white/20 hover:bg-white/30 rounded-full transition-all hover:scale-110 group"
+          title={`Add ${field.replace('Url', '')} link`}
+        >
+          <Icon className="w-5 h-5 text-white/70 group-hover:text-white" />
+        </button>
+      );
+    }
     
     return (
-      <a 
-        href={url.startsWith('http') ? url : `https://${url}`}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="p-2 bg-white/20 hover:bg-white/30 rounded-full transition-all hover:scale-110"
-      >
-        <Icon className="w-5 h-5 text-white" />
-      </a>
+      <div className="flex items-center gap-1">
+        <a 
+          href={url.startsWith('http') ? url : `https://${url}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="p-2 bg-white/20 hover:bg-white/30 rounded-full transition-all hover:scale-110"
+        >
+          <Icon className="w-5 h-5 text-white" />
+        </a>
+        <button
+          onClick={() => setEditingField(field)}
+          className="p-1 bg-white/10 hover:bg-white/20 rounded transition-colors"
+          title="Edit link"
+        >
+          <Edit3 className="w-3 h-3 text-white/70" />
+        </button>
+      </div>
     );
   };
 
-  // League styling helpers
+  // Editable field component
+  const EditableField = ({ field, value, type = 'text', multiline = false, placeholder }) => {
+    if (editingField === field) {
+      const Component = multiline ? 'textarea' : 'input';
+      return (
+        <div className="flex items-center gap-2" dir="ltr">
+          <Component
+            type={type}
+            value={editForm[field]}
+            onChange={(e) => handleFieldChange(field, e.target.value)}
+            onKeyDown={!multiline ? (e) => e.key === 'Enter' && handleFieldSubmit(field) : undefined}
+            className={`bg-white/20 text-white placeholder-white/70 outline-none border-b border-white/50 focus:border-white ${
+              multiline ? 'min-w-[300px] min-h-[60px] p-2 rounded resize-none' : 'text-lg md:text-xl'
+            }`}
+            placeholder={placeholder}
+            autoFocus
+            dir="ltr"
+            style={{ direction: 'ltr', textAlign: 'left' }}
+          />
+          <button
+            onClick={() => handleFieldSubmit(field)}
+            className="p-1 hover:bg-white/20 rounded"
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? (
+              <Loader className="w-4 h-4 animate-spin text-white" />
+            ) : (
+              <Check className="w-4 h-4 text-white" />
+            )}
+          </button>
+          <button
+            onClick={() => handleCancelEdit(field)}
+            className="p-1 hover:bg-white/20 rounded"
+          >
+            <X className="w-4 h-4 text-white" />
+          </button>
+        </div>
+      );
+    }
+
+    return (
+      <div className="flex items-center gap-2 group" dir="ltr" style={{ direction: 'ltr', textAlign: 'left' }}>
+        <span 
+          className={multiline ? "text-white/90 max-w-xl" : "text-lg md:text-xl font-extrabold text-white"}
+          style={{ direction: 'ltr', textAlign: 'left' }}
+        >
+          {value || placeholder}
+        </span>
+        <button
+          onClick={() => setEditingField(field)}
+          className="opacity-0 group-hover:opacity-100 p-1 rounded-full bg-white/20 hover:bg-white/30 transition-all"
+          title={`Edit ${field}`}
+        >
+          <Edit3 className="w-3 h-3 text-white" />
+        </button>
+      </div>
+    );
+  };
+
+  // League styling helpers (keeping existing functions)
   const getLeagueColor = (league) => {
     switch(league) {
       case 'BRONZE': return 'from-amber-700 to-amber-500';
@@ -236,7 +413,6 @@ function Profile() {
     }
   };
 
-  // Add this to determine next league requirements
   const getNextLeagueProgress = (league, solvedCount) => {
     switch(league) {
       case 'BRONZE': return { next: 'SILVER', current: solvedCount, required: 100, progress: (solvedCount/100) * 100 };
@@ -247,30 +423,26 @@ function Profile() {
     }
   };
   
-  // Calculate next league progress
   const nextLeagueInfo = getNextLeagueProgress(authUser?.league || 'BRONZE', stats.totalSolved);
 
   return (
     <div className="min-h-screen bg-slate-100 dark:bg-slate-900 text-black dark:text-white">
-      {/* Hero Banner with Personal Details */}
+      {/* Hero Banner with Personal Details - Now with inline editing */}
       <section className="relative overflow-hidden">
-        {/* Updated Background with red-blue-black theme */}
         <div className="absolute inset-0 bg-gradient-to-br from-gray-900 via-red-900 to-blue-900 overflow-hidden">
-          {/* Animated overlay pattern */}
           <div className="absolute inset-0 bg-gradient-to-r from-red-600/20 via-transparent to-blue-600/20"></div>
           <div className="absolute -inset-[10px] bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmZmZmYiIGZpbGwtb3BhY2l0eT0iMC4xIj48cGF0aCBkPSJNMzYgMzRjMC0yLjIxLTEuNzktNC00LTRzLTQgMS43OS00IDQgMS43OSA0IDQgNCAzLjk4LTEuNzggNC00ek02MCAxMmMwIDYuNjQtNS4zOCAxMi0xMiAxMi02LjY0IDAtMTItNS4zNi0xMi0xMkMzNiA1LjM2IDQxLjM2IDAgNDggMGM2LjYyIDAgMTIgNS4zNiAxMiAxMnptLTI0IDZjMC00LjQyLTMuNTgtOC04LThzLTggMy41OC04IDggMy41OCA4IDggOGM0LjQyIDAgOC0zLjU4IDgtOHoiLz48L2c+PC9nPjwvc3ZnPg==')] opacity-10 animate-[spin_80s_linear_infinite]"></div>
-          {/* Additional geometric overlay */}
           <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-tl from-black/30 via-transparent to-red-600/20"></div>
         </div>
         
         <div className="container mx-auto relative z-10">
           <div className="flex flex-col md:flex-row items-center md:items-start gap-8 py-12 px-4">
-            {/* Avatar Section - Updated to show edit button */}
+            {/* Avatar Section with inline editing */}
             <div className="relative group">
               <div className="w-36 h-36 rounded-full bg-white dark:bg-gray-800 border-4 border-white shadow-xl overflow-hidden flex items-center justify-center">
-                {authUser.avatar ? (
+                {avatarPreview ? (
                   <img 
-                    src={authUser.avatar} 
+                    src={avatarPreview} 
                     alt={`${authUser.name}'s profile`}
                     className="w-full h-full object-cover" 
                   />
@@ -282,78 +454,111 @@ function Profile() {
                 <CheckCircle className="w-6 h-6 text-white" />
               </div>
               <button
-                onClick={() => setIsEditModalOpen(true)}
+                onClick={() => fileInputRef.current?.click()}
                 className="absolute bottom-0 right-0 bg-blue-600 hover:bg-blue-700 opacity-0 group-hover:opacity-100 transition-opacity rounded-full p-2 shadow-md border-2 border-white"
-                title="Edit Profile"
+                title="Change Avatar"
               >
-                <Edit3 className="w-4 h-4 text-white" />
+                <Camera className="w-4 h-4 text-white" />
               </button>
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleAvatarChange}
+                accept="image/*"
+                className="hidden"
+              />
             </div>
             
-            {/* User Info */}
             <div className="flex-1 text-center md:text-left">
-              <div className="flex items-center justify-center md:justify-start gap-2">
-                <h1 className="text-3xl md:text-4xl font-extrabold text-white">
-                  {authUser.name}
-                </h1>
+              <div className="flex items-center justify-center md:justify-start gap-2 mb-2" dir="ltr">
+                <EditableField 
+                  field="name"
+                  value={authUser.name}
+                  placeholder="Enter your name"
+                />
                 
-                {/* League Badge */}
                 <div className={`bg-gradient-to-r ${getLeagueColor(authUser?.league || 'BRONZE')} ml-2 px-3 py-1 rounded-full text-white text-sm font-bold flex items-center gap-2 shadow-lg`}>
                   {getLeagueIcon(authUser?.league || 'BRONZE')}
                   {authUser?.league || 'BRONZE'} League
                 </div>
-                
-                <button
-                  onClick={() => setIsEditModalOpen(true)}
-                  className="p-1 rounded-full bg-white/20 hover:bg-white/30 transition-colors"
-                  title="Edit Profile"
-                >
-                  <Edit3 className="w-4 h-4 text-white" />
-                </button>
               </div>
-              <p className="text-lg text-white/80 font-medium">@{authUser.username || authUser.name?.toLowerCase().replace(/\s/g, '')}</p>
               
-              {authUser.bio && (
-                <p className="mt-2 text-white/90 max-w-xl">
-                  {authUser.bio}
-                </p>
-              )}
+              <p className="text-lg text-white/80 font-medium mb-2" dir="ltr">@{authUser.username || authUser.name?.toLowerCase().replace(/\s/g, '')}</p>
               
-              <div className="mt-4 flex flex-wrap gap-4 justify-center md:justify-start">
-                <div className="flex items-center gap-2 bg-white/20 px-3 py-1.5 rounded-full text-white">
+              <div dir="ltr" style={{ direction: 'ltr', textAlign: 'left' }}>
+                <EditableField 
+                  field="bio"
+                  value={authUser.bio}
+                  placeholder="Tell us about yourself..."
+                  multiline={true}
+                />
+              </div>
+              
+              <div className="flex flex-wrap gap-4 justify-center md:justify-start mb-6" dir="ltr">
+                <div className="flex items-center gap-2 bg-white/20 px-3 py-1.5 rounded-full text-white group">
                   <Mail className="w-4 h-4" />
-                  <span className="text-sm">{authUser.email}</span>
+                  {editingField === 'email' ? (
+                    <div className="flex items-center gap-2" dir="ltr">
+                      <input
+                        type="email"
+                        value={editForm.email}
+                        onChange={(e) => handleFieldChange('email', e.target.value)}
+                        onKeyPress={(e) => e.key === 'Enter' && handleFieldSubmit('email')}
+                        className="bg-transparent text-white placeholder-white/70 text-sm outline-none border-b border-white/50 focus:border-white"
+                        placeholder="Enter email"
+                        autoFocus
+                        dir="ltr"
+                      />
+                      <button
+                        onClick={() => handleFieldSubmit('email')}
+                        className="p-1 hover:bg-white/20 rounded"
+                        disabled={isSubmitting}
+                      >
+                        {isSubmitting ? (
+                          <Loader className="w-3 h-3 animate-spin text-white" />
+                        ) : (
+                          <Check className="w-3 h-3 text-white" />
+                        )}
+                      </button>
+                      <button
+                        onClick={() => handleCancelEdit('email')}
+                        className="p-1 hover:bg-white/20 rounded"
+                      >
+                        <X className="w-3 h-3 text-white" />
+                      </button>
+                    </div>
+                  ) : (
+                    <>
+                      <span className="text-sm" dir="ltr">{authUser.email}</span>
+                      <button
+                        onClick={() => setEditingField('email')}
+                        className="opacity-0 group-hover:opacity-100 p-1 hover:bg-white/20 rounded transition-all"
+                      >
+                        <Edit3 className="w-3 h-3 text-white" />
+                      </button>
+                    </>
+                  )}
                 </div>
+                
                 <div className="flex items-center gap-2 bg-white/20 px-3 py-1.5 rounded-full text-white">
                   <Calendar className="w-4 h-4" />
-                  <span className="text-sm">Joined {new Date(authUser.createdAt).toLocaleDateString()}</span>
+                  <span className="text-sm" dir="ltr">Joined {new Date(authUser.createdAt).toLocaleDateString()}</span>
                 </div>
+                
                 <div className="flex items-center gap-2 bg-white/20 px-3 py-1.5 rounded-full text-white">
                   <Award className="w-4 h-4" />
-                  <span className="text-sm uppercase">{authUser.role}</span>
+                  <span className="text-sm uppercase" dir="ltr">{authUser.role}</span>
                 </div>
               </div>
               
-              <div className="mt-6 flex gap-4 justify-center md:justify-start">
-                {/* Social links - Conditionally rendered based on user data */}
-                {renderSocialLink(authUser.githubUrl, Github)}
-                {renderSocialLink(authUser.linkedinUrl, Linkedin)}
-                {renderSocialLink(authUser.twitterUrl, Twitter)}
-                
-                {/* Show edit button if no social links */}
-                {!authUser.githubUrl && !authUser.linkedinUrl && !authUser.twitterUrl && (
-                  <button
-                    onClick={() => setIsEditModalOpen(true)}
-                    className="p-2 bg-white/20 hover:bg-white/30 rounded-full transition-all flex items-center gap-2 text-sm"
-                  >
-                    <PlusCircle className="w-4 h-4 text-white" />
-                    <span className="text-white font-medium">Add social links</span>
-                  </button>
-                )}
+              <div className="flex gap-4 justify-center md:justify-start flex-wrap" dir="ltr">
+                {renderSocialLink(authUser.githubUrl, Github, 'githubUrl')}
+                {renderSocialLink(authUser.linkedinUrl, Linkedin, 'linkedinUrl')}
+                {renderSocialLink(authUser.twitterUrl, Twitter, 'twitterUrl')}
               </div>
             </div>
-            
-            {/* Stats Cards - Desktop */}
+
+            {/* Stats Cards - Desktop (keeping existing) */}
             <div className="hidden md:flex flex-col gap-4 min-w-[260px] backdrop-blur-md bg-black/20 border border-red-500/30 p-6 rounded-2xl shadow-xl">
               <div className="grid grid-cols-2 gap-4">
                 <div className="text-center p-3 bg-red-600/20 border border-red-500/30 rounded-xl backdrop-blur-sm">
@@ -403,7 +608,6 @@ function Profile() {
           </div>
         </div>
         
-        {/* Wave Divider - Updated color */}
         <div className="absolute bottom-0 left-0 right-0">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 80" className="fill-slate-100 dark:fill-slate-900 w-full h-16">
             <path d="M0,64L80,64C160,64,320,64,480,53.3C640,43,800,21,960,16C1120,11,1280,21,1360,26.7L1440,32L1440,320L1360,320C1280,320,1120,320,960,320C800,320,640,320,480,320C320,320,160,320,80,320L0,320Z"></path>
@@ -476,7 +680,7 @@ function Profile() {
           </button>
         </div>
 
-        {/* Dynamic Content Based on Tab */}
+        {/* Dynamic Content Based on Tab - Keep all existing content */}
         {activeTab === 'problems' && (
           <div className="fade-in">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
@@ -721,7 +925,6 @@ function Profile() {
               Problem Solving Statistics
             </h2>
             
-            {/* Add this League Progression Card */}
             <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 mb-8">
               <div className="flex items-center justify-between mb-6">
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
@@ -851,304 +1054,280 @@ function Profile() {
                 
                 <div className="mt-6 p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
                   <h4 className="font-medium text-purple-700 dark:text-purple-400 mb-1">Did you know?</h4>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
                     Most interviews focus on medium difficulty problems. Try to keep a balanced problem-solving approach!
                   </p>
                 </div>
               </div>
               
-              {/* Activity Stats Card */}
-              <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md border border-gray-200 dark:border-gray-700">
-                <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-gray-100">Your Activity</h3>
-                
-                <div className="grid grid-cols-2 gap-4 mb-6">
-                  <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg text-center">
-                    <div className="text-3xl font-bold text-blue-600 dark:text-blue-400">{stats.totalSolved}</div>
-                    <div className="text-sm text-gray-600 dark:text-gray-400">Total Problems Solved</div>
-                  </div>
-                  
-                  <div className="bg-purple-50 dark:bg-purple-900/20 p-4 rounded-lg text-center">
-                    <div className="text-3xl font-bold text-purple-600 dark:text-purple-400">{stats.totalProblemsInSheets}</div>
-                    <div className="text-sm text-gray-600 dark:text-gray-400">Problems In Sheets</div>
-                  </div>
-                </div>
-                
-                <div className="p-4 bg-gray-50 dark:bg-gray-700/30 rounded-lg">
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Progress to Next Level</span>
-                    <span className="text-xs text-gray-500 dark:text-gray-400">{Math.min(100, Math.round((stats.totalSolved/100)*100))}%</span>
-                  </div>
-                  <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5">
-                    <div 
-                      className="bg-gradient-to-r from-blue-500 to-purple-600 h-2.5 rounded-full" 
-                      style={{width: `${Math.min(100, (stats.totalSolved/100)*100)}%`}}
-                    ></div>
-                  </div>
-                  <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">
-                    Solve {Math.max(0, 100 - stats.totalSolved)} more problems to reach the next level
-                  </div>
-                </div>
-              </div>
-            </div>
-            
-            <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md border border-gray-200 dark:border-gray-700">
-              <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-gray-100">Recommended Next Steps</h3>
               
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:border-purple-500 transition-colors">
-                  <div className="w-10 h-10 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center mb-3">
-                    <Code className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                      <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md border border-gray-200 dark:border-gray-700">
+                      <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-gray-100">Your Activity</h3>
+                      
+                      <div className="grid grid-cols-2 gap-4 mb-6">
+                        <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg text-center">
+                        <div className="text-3xl font-bold text-blue-600 dark:text-blue-400">{stats.totalSolved}</div>
+                        <div className="text-sm text-gray-600 dark:text-gray-400">Total Problems Solved</div>
+                        </div>
+                        
+                        <div className="bg-purple-50 dark:bg-purple-900/20 p-4 rounded-lg text-center">
+                        <div className="text-3xl font-bold text-purple-600 dark:text-purple-400">{stats.totalProblemsInSheets}</div>
+                        <div className="text-sm text-gray-600 dark:text-gray-400">Problems In Sheets</div>
+                        </div>
+                      </div>
+                      
+                      <div className="p-4 bg-gray-50 dark:bg-gray-700/30 rounded-lg">
+                        <div className="flex justify-between items-center mb-2">
+                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Progress to Next Level</span>
+                        <span className="text-xs text-gray-500 dark:text-gray-400">{Math.min(100, Math.round((stats.totalSolved/100)*100))}%</span>
+                        </div>
+                        <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5">
+                        <div 
+                          className="bg-gradient-to-r from-blue-500 to-purple-600 h-2.5 rounded-full" 
+                          style={{width: `${Math.min(100, (stats.totalSolved/100)*100)}%`}}
+                        ></div>
+                        </div>
+                        <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                        Solve {Math.max(0, 100 - stats.totalSolved)} more problems to reach the next level
+                        </div>
+                      </div>
+                      </div>
+                    </div>
+                    
+                    <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md border border-gray-200 dark:border-gray-700">
+                      <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-gray-100">Recommended Next Steps</h3>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:border-purple-500 transition-colors">
+                        <div className="w-10 h-10 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center mb-3">
+                        <Code className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                        </div>
+                        <h4 className="font-medium mb-1 text-gray-900 dark:text-gray-100">Solve More Problems</h4>
+                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                        Continue building your problem-solving skills with our extensive collection.
+                        </p>
+                        <Link 
+                        to="/problems" 
+                        className="text-sm text-purple-600 dark:text-purple-400 font-medium hover:underline"
+                        >
+                        Explore problems →
+                        </Link>
+                      </div>
+                      
+                      <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:border-blue-500 transition-colors">
+                        <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center mb-3">
+                        <BookOpen className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                        </div>
+                        <h4 className="font-medium mb-1 text-gray-900 dark:text-gray-100">Create Study Plan</h4>
+                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                        Organize problems into topic-specific study sheets for interview preparation.
+                        </p>
+                        <Link 
+                        to="/problems" 
+                        className="text-sm text-blue-600 dark:text-blue-400 font-medium hover:underline"
+                        >
+                        Create a sheet →
+                        </Link>
+                      </div>
+                      
+                      <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:border-red-500 transition-colors">
+                        <div className="w-10 h-10 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center mb-3">
+                        <BarChart2 className="w-5 h-5 text-red-600 dark:text-red-400" />
+                        </div>
+                        <h4 className="font-medium mb-1 text-gray-900 dark:text-gray-100">Balance Your Skills</h4>
+                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                        Focus on {stats.easy < stats.medium ? 'easy' : stats.medium < stats.hard ? 'medium' : 'hard'} problems to maintain a balanced profile.
+                        </p>
+                        <Link 
+                        to="/problems" 
+                        className="text-sm text-red-600 dark:text-red-400 font-medium hover:underline"
+                        >
+                        Find problems →
+                        </Link>
+                      </div>
+                      </div>
+                    </div>
+                    <div className="flex justify-center mt-8">
+                      <button 
+                        className='bg-red-700 text-white px-6 py-3 rounded-lg hover:bg-red-800 transition-colors font-medium shadow-lg' 
+                        onClick={() => {
+                          setshowAnalysis(true);
+                          generateProfileAnalysis(); // Add this line to start the analysis
+                        }}
+                        disabled={isLoadingAnalysis}
+                      >
+                        {isLoadingAnalysis ? (
+                          <div className="flex items-center gap-2">
+                            <Loader2 className="w-5 h-5 animate-spin" />
+                            <span>Analyzing...</span>
+                          </div>
+                        ) : (
+                          'Get AI Profile Analysis'
+                        )}
+                      </button>
+                    </div>
+                    {/* AI Profile Analysis Section */}
+            {showAnalysis &&<div className="bg-black p-6 rounded-xl shadow-xl border-2 border-red-600 mt-8">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-xl font-bold text-white flex items-center gap-3">
+                  <div className="relative">
+                    <Brain className="w-6 h-6 text-blue-400 animate-pulse" />
+                    <Sparkles className="w-3 h-3 text-red-400 absolute -top-1 -right-1 animate-ping" />
                   </div>
-                  <h4 className="font-medium mb-1 text-gray-900 dark:text-gray-100">Solve More Problems</h4>
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
-                    Continue building your problem-solving skills with our extensive collection.
-                  </p>
-                  <Link 
-                    to="/problems" 
-                    className="text-sm text-purple-600 dark:text-purple-400 font-medium hover:underline"
-                  >
-                    Explore problems →
-                  </Link>
-                </div>
-                
-                <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:border-blue-500 transition-colors">
-                  <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center mb-3">
-                    <BookOpen className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                  </div>
-                  <h4 className="font-medium mb-1 text-gray-900 dark:text-gray-100">Create Study Plan</h4>
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
-                    Organize problems into topic-specific study sheets for interview preparation.
-                  </p>
-                  <Link 
-                    to="/problems" 
-                    className="text-sm text-blue-600 dark:text-blue-400 font-medium hover:underline"
-                  >
-                    Create a sheet →
-                  </Link>
-                </div>
-                
-                <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:border-red-500 transition-colors">
-                  <div className="w-10 h-10 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center mb-3">
-                    <BarChart2 className="w-5 h-5 text-red-600 dark:text-red-400" />
-                  </div>
-                  <h4 className="font-medium mb-1 text-gray-900 dark:text-gray-100">Balance Your Skills</h4>
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
-                    Focus on {stats.easy < stats.medium ? 'easy' : stats.medium < stats.hard ? 'medium' : 'hard'} problems to maintain a balanced profile.
-                  </p>
-                  <Link 
-                    to="/problems" 
-                    className="text-sm text-red-600 dark:text-red-400 font-medium hover:underline"
-                  >
-                    Find problems →
-                  </Link>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Edit Profile Modal */}
-      {isEditModalOpen && (
-        <div className="fixed inset-0 bg-black/70 dark:bg-black/80 flex items-center justify-center z-50 backdrop-blur-sm p-4">
-          <div className="bg-white dark:bg-gray-900 rounded-lg shadow-xl w-full max-w-md border border-gray-200 dark:border-gray-700">
-            <div className="flex justify-between items-center p-4 border-b border-gray-200 dark:border-gray-700">
-              <h3 className="text-xl font-bold text-gray-800 dark:text-white">Edit Profile</h3>
-              <button 
-                onClick={() => setIsEditModalOpen(false)} 
-                className="btn btn-ghost btn-sm btn-circle text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            
-            <form onSubmit={handleUpdateProfile} className="p-6 h-[50vh] overflow-scroll space-y-4">
-              {/* Avatar Upload */}
-              <div className="flex flex-col items-center mb-4">
-                <div className="relative group">
-                  <div className="w-24 h-24 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden flex items-center justify-center border-2 border-gray-300 dark:border-gray-600">
-                    {avatarPreview ? (
-                      <img 
-                        src={avatarPreview} 
-                        alt="Avatar preview" 
-                        className="w-full h-full object-cover"
-                      />
+                  AI Profile Analysis
+                </h3>
+                <button
+                  onClick={generateProfileAnalysis}
+                  disabled={isLoadingAnalysis}
+                  className="group relative overflow-hidden bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-xl shadow-xl transition-all duration-300 transform hover:scale-105 hover:shadow-2xl border-2 border-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <div className="flex items-center gap-2">
+                    {isLoadingAnalysis ? (
+                      <>
+                        <div className="relative">
+                          <Loader2 className="w-5 h-5 animate-spin" />
+                          <div className="absolute inset-0 bg-white opacity-20 rounded-full animate-ping"></div>
+                        </div>
+                        <span>Analyzing Profile...</span>
+                      </>
                     ) : (
-                      <UserCircle className="w-16 h-16 text-gray-400" />
+                      <>
+                        <div className="relative">
+                          <Brain className="w-5 h-5 group-hover:animate-pulse" />
+                          <Sparkles className="w-3 h-3 absolute -top-1 -right-1 animate-ping text-blue-300" />
+                        </div>
+                        <span>
+                          {profileAnalysis ? 'Refresh Analysis' : 'Generate AI Analysis'}
+                        </span>
+                      </>
                     )}
                   </div>
                   
-                  <button
-                    type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    className="absolute bottom-0 right-0 bg-blue-600 hover:bg-blue-700 transition rounded-full p-2 shadow-md border-2 border-white dark:border-gray-800"
-                    title="Change avatar"
-                  >
-                    <Camera className="w-4 h-4 text-white" />
-                  </button>
-                  
-                  <input
-                    type="file"
-                    ref={fileInputRef}
-                    onChange={handleAvatarChange}
-                    accept="image/*"
-                    className="hidden"
-                  />
-                </div>
-                <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
-                  Click the camera icon to upload a new avatar
-                </p>
-              </div>
-              
-              {/* Basic Info */}
-              <div className="space-y-4">
-                <div className="form-control">
-                  <label className="label">
-                    <span className="label-text font-medium text-gray-700 dark:text-gray-300">Name</span>
-                  </label>
-                  <input
-                    type="text"
-                    name="name"
-                    value={editForm.name}
-                    onChange={handleInputChange}
-                    className="input bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md w-full focus:border-blue-500 dark:focus:border-blue-400 focus:ring-1 focus:ring-blue-500 dark:text-white"
-                    placeholder="Your name"
-                  />
-                </div>
-                
-                <div className="form-control">
-                  <label className="label">
-                    <span className="label-text font-medium text-gray-700 dark:text-gray-300">Email</span>
-                  </label>
-                  <input
-                    type="email"
-                    name="email"
-                    value={editForm.email}
-                    onChange={handleInputChange}
-                    className="input bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md w-full focus:border-blue-500 dark:focus:border-blue-400 focus:ring-1 focus:ring-blue-500 dark:text-white"
-                    placeholder="your.email@example.com"
-                  />
-                </div>
-                
-                <div className="form-control">
-                  <label className="label">
-                    <span className="label-text font-medium text-gray-700 dark:text-gray-300">Bio</span>
-                  </label>
-                  <textarea
-                    name="bio"
-                    value={editForm.bio}
-                    onChange={handleInputChange}
-                    className="textarea bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md w-full h-24 focus:border-blue-500 dark:focus:border-blue-400 focus:ring-1 focus:ring-blue-500 dark:text-white"
-                    placeholder="Tell us about yourself"
-                  />
-                </div>
-              </div>
-              
-              {/* Social Links */}
-              <div className="space-y-4 pt-2 border-t border-gray-200 dark:border-gray-700">
-                <h4 className="font-medium text-gray-800 dark:text-gray-200 flex items-center gap-2">
-                  <Github className="w-4 h-4" /> Social Links
-                </h4>
-                
-                <div className="form-control">
-                  <label className="label">
-                    <span className="label-text font-medium text-gray-700 dark:text-gray-300">GitHub URL</span>
-                  </label>
-                  <div className="relative">
-                    <Github className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                    <input
-                      type="text"
-                      name="githubUrl"
-                      value={editForm.githubUrl}
-                      onChange={handleInputChange}
-                      className="input pl-10 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md w-full focus:border-blue-500 dark:focus:border-blue-400 focus:ring-1 focus:ring-blue-500 dark:text-white"
-                      placeholder="https://github.com/yourusername"
-                    />
+                  {/* Animated background effect */}
+                  <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
+                    <div className="absolute inset-0 bg-blue-600 animate-pulse"></div>
                   </div>
-                </div>
-                
-                <div className="form-control">
-                  <label className="label">
-                    <span className="label-text font-medium text-gray-700 dark:text-gray-300">LinkedIn URL</span>
-                  </label>
-                  <div className="relative">
-                    <Linkedin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                    <input
-                      type="text"
-                      name="linkedinUrl"
-                      value={editForm.linkedinUrl}
-                      onChange={handleInputChange}
-                      className="input pl-10 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md w-full focus:border-blue-500 dark:focus:border-blue-400 focus:ring-1 focus:ring-blue-500 dark:text-white"
-                      placeholder="https://linkedin.com/in/yourusername"
-                    />
-                  </div>
-                </div>
-                
-                <div className="form-control">
-                  <label className="label">
-                    <span className="label-text font-medium text-gray-700 dark:text-gray-300">Twitter URL</span>
-                  </label>
-                  <div className="relative">
-                    <Twitter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                    <input
-                      type="text"
-                      name="twitterUrl"
-                      value={editForm.twitterUrl}
-                      onChange={handleInputChange}
-                      className="input pl-10 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md w-full focus:border-blue-500 dark:focus:border-blue-400 focus:ring-1 focus:ring-blue-500 dark:text-white"
-                      placeholder="https://x.com/yourusername"
-                    />
-                  </div>
-                </div>
-              </div>
-              
-              {/* Submit Button */}
-              <div className="flex justify-end gap-2 pt-4 border-t border-gray-200 dark:border-gray-700">
-                <button
-                  type="button"
-                  onClick={() => setIsEditModalOpen(false)}
-                  className="btn px-4 py-2 bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-300 dark:hover:bg-gray-700"
-                  disabled={isSubmitting}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="btn px-4 py-2 bg-blue-600 dark:bg-blue-700 text-white rounded-md hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors flex items-center gap-2"
-                  disabled={isSubmitting}
-                >
-                  {isSubmitting ? (
-                    <>
-                      <Loader className="w-4 h-4 animate-spin" />
-                      Updating...
-                    </>
-                  ) : (
-                    <>
-                      <Save className="w-4 h-4" />
-                      Save Changes
-                    </>
-                  )}
                 </button>
               </div>
-            </form>
-          </div>
-        </div>
-      )}
 
+              {/* Analysis Content */}
+              {isLoadingAnalysis ? (
+                <div className="flex flex-col items-center justify-center py-12 animate-fadeIn">
+                  <div className="flex space-x-2 mb-4">
+                    <div className="w-3 h-3 bg-red-500 rounded-full animate-bounce"></div>
+                    <div className="w-3 h-3 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                    <div className="w-3 h-3 bg-black border border-white rounded-full animate-bounce" style={{ animationDelay: '0.4s' }}></div>
+                  </div>
+                  <p className="text-gray-300 text-lg font-medium animate-pulse">AI is analyzing your coding journey...</p>
+                  <p className="text-gray-500 text-sm mt-2">Evaluating problem-solving patterns, difficulty progression, and skill development...</p>
+                </div>
+              ) : profileAnalysis ? (
+                <div className="space-y-6 animate-fadeIn">
+                  <div className="bg-black p-6 rounded-xl border-2 border-blue-600">
+                    <div className="prose prose-lg max-w-none">
+                      <div className="text-gray-300 leading-relaxed text-base space-y-4">
+                        
+                        {/* Overall Performance Analysis */}
+                        <div className="bg-red-600 p-4 rounded-lg border border-black animate-typewriter">
+                          <p>
+                            <span className="text-white font-semibold">🎯 Overall Performance:</span> 
+                            <span className="text-gray-100 ml-2">{profileAnalysis.overallPerformance}</span>
+                          </p>
+                        </div>
+
+                        {/* Strengths Analysis */}
+                        {profileAnalysis.strengths && (
+                          <div className="bg-blue-600 p-4 rounded-lg border border-black animate-slideInLeft" style={{animationDelay: '0.3s'}}>
+                            <p>
+                              <span className="text-white font-semibold">💪 Key Strengths:</span> 
+                              <span className="text-gray-100 ml-2">{profileAnalysis.strengths}</span>
+                            </p>
+                          </div>
+                        )}
+
+                        {/* Areas for Improvement */}
+                        {profileAnalysis.weaknesses && (
+                          <div className="bg-black p-4 rounded-lg border-2 border-red-600 animate-slideInLeft" style={{animationDelay: '0.6s'}}>
+                            <p>
+                              <span className="text-red-400 font-semibold">🎯 Areas for Growth:</span> 
+                              <span className="text-gray-100 ml-2">{profileAnalysis.weaknesses}</span>
+                            </p>
+                          </div>
+                        )}
+
+                        {/* Recommendations */}
+                        {profileAnalysis.recommendations && (
+                          <div className="bg-blue-600 p-4 rounded-lg border border-black animate-slideInLeft" style={{animationDelay: '0.9s'}}>
+                            <p>
+                              <span className="text-white font-semibold">🚀 Personalized Recommendations:</span> 
+                              <span className="text-gray-100 ml-2">{profileAnalysis.recommendations}</span>
+                            </p>
+                          </div>
+                        )}
+
+                        {/* Study Strategy */}
+                        {profileAnalysis.studyStrategy && (
+                          <div className="bg-red-600 p-4 rounded-lg border border-black animate-slideInLeft" style={{animationDelay: '1.2s'}}>
+                            <p>
+                              <span className="text-white font-semibold">📚 Optimal Study Strategy:</span> 
+                              <span className="text-gray-100 ml-2">{profileAnalysis.studyStrategy}</span>
+                            </p>
+                          </div>
+                        )}
+
+                        {/* Conclusion */}
+                        <div className="bg-black p-4 rounded-lg border-2 border-blue-600 animate-slideInLeft" style={{animationDelay: '1.5s'}}>
+                          <p className="text-gray-400 italic border-l-4 border-red-600 pl-4">
+                            This AI-powered analysis is based on your current problem-solving patterns and progress. 
+                            Keep practicing consistently to enhance your algorithmic thinking and coding expertise! 
+                            Your dedication to continuous learning will lead to remarkable growth in your programming journey. 🌟
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-12">
+                  <div className="relative inline-block mb-6">
+                    <div className="w-20 h-20 bg-red-600 rounded-full flex items-center justify-center border-2 border-blue-600">
+                      <Brain className="w-10 h-10 text-white" />
+                    </div>
+                    <div className="absolute -top-2 -right-2 w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center border border-black">
+                      <Sparkles className="w-4 h-4 text-white" />
+                    </div>
+                  </div>
+                  <h4 className="text-xl font-bold mb-3 text-white">Ready for AI Insights?</h4>
+                  <p className="text-gray-400 mb-6 max-w-md mx-auto">
+                    Get personalized analysis of your coding journey, including strengths, areas for improvement, 
+                    and tailored recommendations to accelerate your progress.
+                  </p>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                    <div className="bg-red-600 p-3 rounded-lg border-2 border-black">
+                      <Code className="w-5 h-5 text-white mx-auto mb-1" />
+                      <span className="text-white">Problem Analysis</span>
+                    </div>
+                    <div className="bg-blue-600 p-3 rounded-lg border-2 border-black">
+                      <BarChart2 className="w-5 h-5 text-white mx-auto mb-1" />
+                      <span className="text-white">Progress Tracking</span>
+                    </div>
+                    <div className="bg-black p-3 rounded-lg border-2 border-red-600">
+                      <Trophy className="w-5 h-5 text-red-400 mx-auto mb-1" />
+                      <span className="text-red-400">Strength Detection</span>
+                    </div>
+                    <div className="bg-black p-3 rounded-lg border-2 border-blue-600">
+                      <Target className="w-5 h-5 text-blue-400 mx-auto mb-1" />
+                      <span className="text-blue-400">Goal Setting</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
 
 export default Profile;
-
-// Add this CSS in your global CSS file
-/*
-.fade-in {
-  animation: fadeIn 0.3s ease-in-out;
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1, transform: translateY(0); }
-}
-*/
