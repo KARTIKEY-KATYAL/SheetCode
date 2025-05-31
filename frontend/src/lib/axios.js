@@ -6,7 +6,7 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
 export const axiosInstance = axios.create({
   baseURL: API_URL,
   withCredentials: true,
-  timeout: 10000,
+  timeout: 60000, // Increase to 60 seconds for AI operations
 });
 
 // Add request interceptor for debugging

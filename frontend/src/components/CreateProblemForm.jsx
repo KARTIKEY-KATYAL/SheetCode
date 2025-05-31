@@ -6,6 +6,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from "react-router-dom";
 import { useProblemStore } from "../store/useProblemStore";
 import toast from "react-hot-toast";
+import axios from 'axios'; // Add this import
 import {
   Plus,
   Trash2,
@@ -16,9 +17,18 @@ import {
   CheckCircle2,
   Download,
   Building2,
+  Sparkles,
+  Loader
 } from "lucide-react";
 import Editor from "@monaco-editor/react";
 import { axiosInstance } from "../lib/axios";
+
+// Create a special axios instance for AI operations with longer timeout
+const aiAxiosInstance = axios.create({
+  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1',
+  withCredentials: true,
+  timeout: 120000, // 2 minutes for AI operations
+});
 
 // Update the Zod schema to include the companies field
 const problemSchema = z.object({
@@ -35,7 +45,7 @@ const problemSchema = z.object({
     .array(
       z.object({
         input: z.string().min(1, "Input is required"),
-        output: z.string().min(1, "Output is required"),
+        output: z.string().min(1, "Output must be at least 1 character"),
       })
     )
     .min(1, "At least one test case is required"),
@@ -692,6 +702,12 @@ const CreateProblemForm = () => {
     const [isDark, setIsDark] = useState(
       window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
     );
+    
+    // AI Generation Loading States
+    const [isGeneratingTestCases, setIsGeneratingTestCases] = useState(false);
+    const [isGeneratingExamples, setIsGeneratingExamples] = useState(false);
+    const [isGeneratingStarterCode, setIsGeneratingStarterCode] = useState(false);
+    const [isGeneratingHints, setIsGeneratingHints] = useState(false);
 
     // Listen for OS theme changes
     useEffect(() => {
@@ -737,6 +753,8 @@ const CreateProblemForm = () => {
         },
       }
     });
+
+    const watchedValues = watch(); // This will give you current form values
 
     // Field arrays
     const {
@@ -930,10 +948,479 @@ const CreateProblemForm = () => {
       
       replaceTags(sampleData.tags.map((tag) => tag));
       replaceTestCases(sampleData.testCases.map((tc) => tc));
-      replaceCompanies(sampleData.companies.map((company) => company)); // Add companies replacement
+      replaceCompanies(sampleData.companies.map((company) => company));
 
       // Reset the form with sample data
       reset(sampleData);
+      
+      // Show success message
+      toast.success(`Loaded ${sampleType === "DP" ? "Dynamic Programming" : "String Processing"} sample data!`);
+    };
+
+    const generateTestCasesWithAI = async () => {
+      const currentValues = watchedValues;
+      
+      if (!currentValues.title || !currentValues.description || !currentValues.difficulty) {
+        toast.error('Please fill in title, description, and difficulty first');
+        return;
+      }
+
+      setIsGeneratingTestCases(true);
+      try {
+        const response = await axiosInstance.post('/testcases/generate-testcases', {
+          title: currentValues.title,
+          description: currentValues.description,
+          difficulty: currentValues.difficulty,
+          tags: currentValues.tags || [],
+          constraints: currentValues.constraints || ''
+        });
+
+        const generatedTestCases = response.data.data.testCases;
+        
+        const transformedTestCases = generatedTestCases.map(tc => ({
+          input: tc.input,
+          output: tc.output
+        }));
+
+        replaceTestCases(transformedTestCases);
+
+        toast.success(`Generated ${generatedTestCases.length} test cases with Claude AI!`);
+      } catch (error) {
+        console.error('Error generating test cases:', error);
+        toast.error('Failed to generate test cases. Please try again.');
+      } finally {
+        setIsGeneratingTestCases(false);
+      }
+    };
+
+    const generateExamplesWithAI = async () => {
+      const currentValues = watchedValues;
+      
+      if (!currentValues.title || !currentValues.description) {
+        toast.error('Please fill in title and description first');
+        return;
+      }
+
+      setIsGeneratingExamples(true);
+      try {
+        const languages = ['JAVASCRIPT', 'PYTHON', 'JAVA', 'CPP'];
+        const examplePromises = languages.map(language => 
+          axiosInstance.post('/testcases/generate-example', {
+            title: currentValues.title,
+            description: currentValues.description,
+            language: language
+          })
+        );
+
+        const responses = await Promise.allSettled(examplePromises);
+        
+        responses.forEach((response, index) => {
+          const language = languages[index];
+          if (response.status === 'fulfilled') {
+            const example = response.value.data.data.example;
+            setValue(`examples.${language}.input`, example?.input || '');
+            setValue(`examples.${language}.output`, example?.output || '');
+            setValue(`examples.${language}.explanation`, example?.explanation || '');
+          } else {
+            console.error(`Failed to generate example for ${language}:`, response.reason);
+            setValue(`examples.${language}.input`, 'Sample input');
+            setValue(`examples.${language}.output`, 'Sample output');
+            setValue(`examples.${language}.explanation`, 'Sample explanation');
+          }
+        });
+
+        toast.success('Generated examples for all languages with Claude AI!');
+      } catch (error) {
+        console.error('Error generating examples:', error);
+        toast.error('Failed to generate examples. Please try again.');
+      } finally {
+        setIsGeneratingExamples(false);
+      }
+    };
+
+    // Enhanced complete generation function
+    const generateCompleteDataWithAI = async () => {
+      const currentValues = watchedValues;
+      
+      if (!currentValues.title || !currentValues.description || !currentValues.difficulty) {
+        toast.error('Please fill in title, description, and difficulty first');
+        return;
+      }
+
+      console.log('Starting complete generation with:', {
+        title: currentValues.title,
+        description: currentValues.description,
+        difficulty: currentValues.difficulty
+      });
+
+      setIsGeneratingTestCases(true);
+      setIsGeneratingExamples(true);
+      setIsGeneratingStarterCode(true);
+      setIsGeneratingHints(true);
+
+      try {
+        console.log('Making AI request - this may take up to 2 minutes...');
+        
+        // Show progress toast
+        const progressToast = toast.loading('Generating complete problem data with AI... This may take up to 2 minutes.');
+        
+        const requestData = {
+          title: currentValues.title,
+          description: currentValues.description,
+          difficulty: currentValues.difficulty,
+          tags: currentValues.tags || [],
+          constraints: currentValues.constraints || '',
+          languages: ['JAVASCRIPT', 'PYTHON', 'JAVA', 'CPP']
+        };
+        
+        console.log('Request data:', requestData);
+
+        // Use the AI-specific axios instance with longer timeout
+        const response = await aiAxiosInstance.post('/testcases/generate-complete', requestData);
+
+        // Dismiss progress toast
+        toast.dismiss(progressToast);
+
+        console.log('Complete generation response:', response.data);
+
+        if (!response.data || !response.data.data) {
+          throw new Error('Invalid response format from server');
+        }
+
+        const { testCases, examples, starterCode, hints } = response.data.data;
+
+        let updatedCount = 0;
+
+        // Update test cases
+        if (testCases && Array.isArray(testCases) && testCases.length > 0) {
+          console.log('Updating test cases:', testCases);
+          const transformedTestCases = testCases.map(tc => ({
+            input: tc.input || '',
+            output: tc.output || ''
+          }));
+          replaceTestCases(transformedTestCases);
+          updatedCount++;
+          console.log(`✅ Updated ${transformedTestCases.length} test cases`);
+        } else {
+          console.warn('⚠️ No test cases received');
+        }
+
+        // Update examples
+        if (examples && typeof examples === 'object' && Object.keys(examples).length > 0) {
+          console.log('Updating examples:', examples);
+          Object.keys(examples).forEach(language => {
+            const example = examples[language];
+            if (example) {
+              setValue(`examples.${language}.input`, example.input || '');
+              setValue(`examples.${language}.output`, example.output || '');
+              setValue(`examples.${language}.explanation`, example.explanation || '');
+            }
+          });
+          updatedCount++;
+          console.log(`✅ Updated examples for languages: ${Object.keys(examples).join(', ')}`);
+        } else {
+          console.warn('⚠️ No examples received');
+        }
+
+        // Update starter code
+        if (starterCode && typeof starterCode === 'object' && Object.keys(starterCode).length > 0) {
+          console.log('Updating starter code:', Object.keys(starterCode));
+          Object.keys(starterCode).forEach(language => {
+            if (starterCode[language]) {
+              setValue(`codeSnippets.${language}`, starterCode[language]);
+            }
+          });
+          updatedCount++;
+          console.log(`✅ Updated starter code for languages: ${Object.keys(starterCode).join(', ')}`);
+        } else {
+          console.warn('⚠️ No starter code received');
+        }
+
+        // Update hints
+        if (hints && Array.isArray(hints) && hints.length > 0) {
+          console.log('Updating hints:', hints);
+          const hintsText = hints.map((hint, index) => {
+            const level = hint.level || (index + 1);
+            const hintText = hint.hint || hint;
+            return `${level}. ${hintText}`;
+          }).join('\n\n');
+          setValue('hints', hintsText);
+          updatedCount++;
+          console.log(`✅ Updated ${hints.length} hints`);
+        } else {
+          console.warn('⚠️ No hints received');
+        }
+
+        console.log(`🎉 Generation complete! Updated ${updatedCount}/4 components`);
+
+        if (updatedCount > 0) {
+          toast.success(`Generated complete problem data! Updated ${updatedCount}/4 components with Claude AI`);
+        } else {
+          toast.warning('Generated data but no components were updated. Please check the console for details.');
+        }
+
+      } catch (error) {
+        console.error('❌ Error generating complete data:', error);
+        
+        // Enhanced error logging
+        if (error.response) {
+          console.error('Response status:', error.response.status);
+          console.error('Response data:', error.response.data);
+        }
+        
+        // Provide more specific error messages
+        if (error.code === 'ECONNABORTED') {
+          toast.error('AI generation timed out. The request is taking too long. Please try generating components individually.');
+        } else if (error?.response?.status === 401) {
+          toast.error('Authentication failed. Please login as admin.');
+        } else if (error?.response?.status === 403) {
+          toast.error('Access denied. Admin privileges required.');
+        } else if (error?.response?.status === 500) {
+          toast.error('Server error during generation. Please try again.');
+        } else if (error?.response?.data?.message) {
+          toast.error(`AI Generation failed: ${error.response.data.message}`);
+        } else if (error.code === 'ERR_NETWORK') {
+          toast.error('Network error. Please check your connection.');
+        } else {
+          toast.error('Failed to generate complete data. Please try generating components individually.');
+        }
+      } finally {
+        setIsGeneratingTestCases(false);
+        setIsGeneratingExamples(false);
+        setIsGeneratingStarterCode(false);
+        setIsGeneratingHints(false);
+      }
+    };
+
+    const generateStarterCodeWithAI = async () => {
+      const currentValues = watchedValues;
+      
+      if (!currentValues.title || !currentValues.description) {
+        toast.error('Please fill in title and description first');
+        return;
+      }
+
+      setIsGeneratingStarterCode(true);
+      try {
+        console.log('Generating starter code for:', currentValues.title);
+        
+        const response = await axiosInstance.post('/testcases/generate-starter-code', {
+          title: currentValues.title,
+          description: currentValues.description,
+          languages: ['JAVASCRIPT', 'PYTHON', 'JAVA', 'CPP']
+        });
+
+        const starterCode = response.data.data.starterCode;
+        
+        if (starterCode && typeof starterCode === 'object') {
+          let updatedLanguages = [];
+          
+          Object.keys(starterCode).forEach(language => {
+            if (starterCode[language]) {
+              // Validate that it's actually starter code (contains placeholders)
+              const code = starterCode[language];
+              const hasPlaceholder = code.includes('Your code here') || 
+                                code.includes('// TODO') || 
+                                code.includes('# TODO') || 
+                                code.includes('pass') ||
+                                code.includes('return null') ||
+                                code.includes('return nullptr');
+              
+              if (hasPlaceholder) {
+                setValue(`codeSnippets.${language}`, code);
+                updatedLanguages.push(language);
+              } else {
+                console.warn(`Generated code for ${language} appears to be a complete solution, not starter code`);
+                // Set a basic template instead
+                setValue(`codeSnippets.${language}`, getBasicTemplate(language, currentValues.title));
+                updatedLanguages.push(language);
+              }
+            }
+          });
+          
+          if (updatedLanguages.length > 0) {
+            toast.success(`Generated starter code templates for ${updatedLanguages.length} languages!`);
+          } else {
+            toast.warning('Generated code but used fallback templates. AI may have generated complete solutions instead of starter code.');
+          }
+        } else {
+          toast.error('Invalid response format from AI service');
+        }
+      } catch (error) {
+        console.error('Error generating starter code:', error);
+        
+        // Provide fallback templates
+        const languages = ['JAVASCRIPT', 'PYTHON', 'JAVA', 'CPP'];
+        languages.forEach(language => {
+          setValue(`codeSnippets.${language}`, getBasicTemplate(language, currentValues.title));
+        });
+        
+        toast.error('Failed to generate starter code with AI. Using basic templates instead.');
+      } finally {
+        setIsGeneratingStarterCode(false);
+      }
+    };
+
+    const generateHintsWithAI = async () => {
+      const currentValues = watchedValues;
+      
+      if (!currentValues.title || !currentValues.description) {
+        toast.error('Please fill in title and description first');
+        return;
+      }
+
+      setIsGeneratingHints(true);
+      try {
+        console.log('Generating hints for:', currentValues.title);
+        
+        const response = await axiosInstance.post('/testcases/generate-hints', {
+          title: currentValues.title,
+          description: currentValues.description,
+          difficulty: currentValues.difficulty || 'EASY',
+          tags: currentValues.tags || [],
+          constraints: currentValues.constraints || ''
+        });
+
+        const hints = response.data.data.hints;
+        
+        if (hints && Array.isArray(hints) && hints.length > 0) {
+          // Format hints as numbered list
+          const hintsText = hints.map((hint, index) => {
+            const hintText = typeof hint === 'string' ? hint : (hint.hint || hint.text || '');
+            return `${index + 1}. ${hintText}`;
+          }).join('\n\n');
+          
+          setValue('hints', hintsText);
+          toast.success(`Generated ${hints.length} helpful hints with AI!`);
+        } else if (typeof hints === 'string') {
+          // If hints is returned as a single string
+          setValue('hints', hints);
+          toast.success('Generated hints with AI!');
+        } else {
+          toast.warning('No hints were generated. Please try again.');
+        }
+      } catch (error) {
+        console.error('Error generating hints:', error);
+        
+        // Provide fallback hints based on difficulty
+        const fallbackHints = getFallbackHints(currentValues.difficulty, currentValues.title);
+        setValue('hints', fallbackHints);
+        
+        toast.error('Failed to generate hints with AI. Using fallback hints instead.');
+      } finally {
+        setIsGeneratingHints(false);
+      }
+    };
+
+    // Helper function for fallback hints
+    const getFallbackHints = (difficulty, title) => {
+      const difficultyHints = {
+        EASY: [
+          "Start by understanding the problem requirements clearly.",
+          "Think about the simplest approach first.",
+          "Consider edge cases like empty inputs or single elements."
+        ],
+        MEDIUM: [
+          "Break down the problem into smaller subproblems.",
+          "Consider using data structures like arrays, maps, or sets.",
+          "Think about the time and space complexity of your solution."
+        ],
+        HARD: [
+          "Consider advanced algorithms like dynamic programming or graph algorithms.",
+          "Think about optimization techniques to reduce time complexity.",
+          "Consider multiple approaches and compare their trade-offs."
+        ]
+      };
+
+      const hints = difficultyHints[difficulty] || difficultyHints.EASY;
+      return hints.map((hint, index) => `${index + 1}. ${hint}`).join('\n\n');
+    };
+
+    // Helper function for basic templates
+    const getBasicTemplate = (language, title) => {
+      const templates = {
+        JAVASCRIPT: `/**
+ * ${title || 'Problem'}
+ */
+function solution() {
+    // Your code here
+    return null;
+}
+
+// Input parsing
+const readline = require('readline');
+const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout,
+    terminal: false
+});
+
+rl.on('line', (line) => {
+    const input = line.trim();
+    const result = solution(input);
+    console.log(result);
+    rl.close();
+});`,
+
+        PYTHON: `"""
+${title || 'Problem'}
+"""
+class Solution:
+    def solve(self):
+        # Your code here
+        pass
+
+if __name__ == "__main__":
+    import sys
+    input_data = sys.stdin.readline().strip()
+    
+    sol = Solution()
+    result = sol.solve(input_data)
+    print(result)`,
+
+        JAVA: `/**
+ * ${title || 'Problem'}
+ */
+import java.util.Scanner;
+
+public class Main {
+    public static void solution() {
+        // Your code here
+    }
+    
+    public static void main(String[] args) {
+        Scanner scanner = new Scanner(System.in);
+        String input = scanner.nextLine();
+        
+        solution();
+        scanner.close();
+    }
+}`,
+
+        CPP: `/**
+ * ${title || 'Problem'}
+ */
+#include <iostream>
+using namespace std;
+
+class Solution {
+public:
+    void solve() {
+        // Your code here
+    }
+};
+
+int main() {
+    string input;
+    getline(cin, input);
+    
+    Solution solution;
+    solution.solve();
+    return 0;
+}`
+      };
+
+      return templates[language] || `// ${title || 'Problem'}\n// Your code here`;
     };
 
     // Show loading spinner while loading problem data
@@ -978,47 +1465,81 @@ const CreateProblemForm = () => {
             </span>
           </h1>
 
-          {/* Sample Data Buttons - Only show when creating */}
-          {!isEditing && (
-            <div className="flex flex-col sm:flex-row gap-3 mt-6 lg:mt-0">
-            <div className="join shadow-lg">
-              <button
-              type="button"
-              className={`btn join-item font-semibold transition-all duration-200 ${
-                sampleType === "DP" 
-                ? `${isDark ? 'bg-blue-600 hover:bg-blue-700 text-white border-blue-600' : 'bg-blue-600 hover:bg-blue-700 text-white border-blue-600'}` 
-                : `${isDark ? 'bg-gray-700 hover:bg-gray-600 text-gray-200 border-gray-600' : 'bg-gray-100 hover:bg-gray-200 text-gray-700 border-gray-300'}`
-              }`}
-              onClick={() => setSampleType("DP")}
-              >
-              DP Problem
-              </button>
-              <button
-              type="button"
-              className={`btn join-item font-semibold transition-all duration-200 ${
-                sampleType === "string" 
-                ? `${isDark ? 'bg-blue-600 hover:bg-blue-700 text-white border-blue-600' : 'bg-blue-600 hover:bg-blue-700 text-white border-blue-600'}` 
-                : `${isDark ? 'bg-gray-700 hover:bg-gray-600 text-gray-200 border-gray-600' : 'bg-gray-100 hover:bg-gray-200 text-gray-700 border-gray-300'}`
-              }`}
-              onClick={() => setSampleType("string")}
-              >
-              String Problem
-              </button>
+          {/* MAIN AI BUTTON - TOP RIGHT */}
+          <button
+            type="button"
+            onClick={generateCompleteDataWithAI}
+            disabled={isGeneratingTestCases || isGeneratingExamples || isGeneratingStarterCode || isGeneratingHints}
+            className={`btn btn-circle btn-lg shadow-xl transition-all duration-200 hover:scale-110 bg-white hover:bg-gray-100 border-2 border-purple-500 hover:border-purple-600`}
+            title="Generate everything with AI"
+          >
+            {(isGeneratingTestCases || isGeneratingExamples || isGeneratingStarterCode || isGeneratingHints) ? (
+              <Loader className="w-6 h-6 animate-spin text-purple-600" />
+            ) : (
+              <img src="/AI-m.svg" alt="AI" className="w-6 h-6" />
+            )}
+          </button>
+          </div>
+
+          {/* Sample Questions Section */}
+          <div className={`w-full rounded-xl p-6 shadow-lg border-l-4 mb-8 ${
+            isDark 
+              ? 'bg-gray-750 border-purple-500' 
+              : 'bg-gray-50 border-purple-500'
+          }`}>
+            <div className="flex items-center justify-between mb-6">
+              <h3 className={`text-2xl font-bold flex items-center gap-3 ${
+                isDark ? 'text-purple-400' : 'text-purple-600'
+              }`}>
+                <Download className="w-6 h-6" />
+                Sample Questions
+              </h3>
+              
+              {/* Sample Question Tabs */}
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSampleType("DP");
+                    loadSampleData();
+                  }}
+                  className={`btn btn-sm font-medium transition-all duration-200 hover:scale-105 ${
+                    isDark 
+                      ? 'bg-green-600 hover:bg-green-700 text-white border-green-600' 
+                      : 'bg-green-600 hover:bg-green-700 text-white border-green-600'
+                  }`}
+                >
+                  <Download className="w-3 h-3 mr-1" />
+                  DP Sample
+                </button>
+                
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSampleType("STRING");
+                    loadSampleData();
+                  }}
+                  className={`btn btn-sm font-medium transition-all duration-200 hover:scale-105 ${
+                    isDark 
+                      ? 'bg-blue-600 hover:bg-blue-700 text-white border-blue-600' 
+                      : 'bg-blue-600 hover:bg-blue-700 text-white border-blue-600'
+                  }`}
+                >
+                  <Download className="w-3 h-3 mr-1" />
+                  String Sample
+                </button>
+              </div>
             </div>
-            <button
-              type="button"
-              className={`btn font-semibold gap-2 shadow-lg transition-all duration-200 ${
-              isDark 
-                ? 'bg-red-600 hover:bg-red-700 text-white border-red-600' 
-                : 'bg-red-600 hover:bg-red-700 text-white border-red-600'
-              }`}
-              onClick={loadSampleData}
-            >
-              <Download className="w-4 h-4" />
-              Load Sample
-            </button>
+            
+            <div className={`p-4 rounded-lg ${
+              isDark ? 'bg-blue-900/20 border border-blue-700' : 'bg-blue-50 border border-blue-200'
+            }`}>
+              <p className={`text-sm ${
+                isDark ? 'text-blue-300' : 'text-blue-700'
+              }`}>
+                💡 <strong>Pro Tip:</strong> Use these sample questions as templates. Click the buttons above to load sample data or use the AI generation features to create custom problems.
+              </p>
             </div>
-          )}
           </div>
 
           <form onSubmit={handleSubmit(onSubmit)} className="w-full space-y-10">
@@ -1127,10 +1648,10 @@ const CreateProblemForm = () => {
             </h3>
             <button
               type="button"
-              className={`btn font-semibold shadow-lg transition-all duration-200 hover:scale-105 ${
+              className={`btn btn-sm font-medium transition-all duration-200 hover:scale-105 ${
               isDark 
-                ? 'bg-blue-600 hover:bg-blue-700 text-white border-blue-600' 
-                : 'bg-blue-600 hover:bg-blue-700 text-white border-blue-600'
+                ? 'bg-green-600 hover:bg-green-700 text-white border-green-600' 
+                : 'bg-green-600 hover:bg-green-700 text-white border-green-600'
               }`}
               onClick={() => appendTag("")}
             >
@@ -1235,17 +1756,33 @@ const CreateProblemForm = () => {
               <CheckCircle2 className="w-6 h-6" />
               Test Cases
             </h3>
-            <button
-              type="button"
-              className={`btn font-semibold shadow-lg transition-all duration-200 hover:scale-105 ${
-              isDark 
-                ? 'bg-blue-600 hover:bg-blue-700 text-white border-blue-600' 
-                : 'bg-blue-600 hover:bg-blue-700 text-white border-blue-600'
-              }`}
-              onClick={() => appendTestCase({ input: "", output: "" })}
-            >
-              <Plus className="w-4 h-4 mr-2" /> Add Test Case
-            </button>
+            <div className="flex items-center gap-3">
+              {/* AI BUTTON FOR TEST CASES */}
+              <button
+                type="button"
+                onClick={generateTestCasesWithAI}
+                disabled={isGeneratingTestCases}
+                className={`btn btn-circle btn-sm shadow-lg transition-all duration-200 hover:scale-110 bg-white hover:bg-gray-100 border-2 border-purple-500 hover:border-purple-600`}
+                title="Generate test cases with AI"
+              >
+                {isGeneratingTestCases ? (
+                  <Loader className="w-4 h-4 animate-spin text-purple-600" />
+                ) : (
+                  <img src="/AI-sm.svg" alt="AI" className="w-4 h-4" />
+                )}
+              </button>
+              <button
+                type="button"
+                className={`btn font-semibold shadow-lg transition-all duration-200 hover:scale-105 ${
+                isDark 
+                  ? 'bg-blue-600 hover:bg-blue-700 text-white border-blue-600' 
+                  : 'bg-blue-600 hover:bg-blue-700 text-white border-blue-600'
+                }`}
+                onClick={() => appendTestCase({ input: "", output: "" })}
+              >
+                <Plus className="w-4 h-4 mr-2" /> Add Test Case
+              </button>
+            </div>
             </div>
             <div className="space-y-6">
             {testCaseFields.map((field, index) => (
@@ -1327,12 +1864,28 @@ const CreateProblemForm = () => {
                 : 'bg-gray-50 border-blue-500'
               }`}
             >
-              <h3 className={`text-2xl font-bold mb-6 flex items-center gap-3 ${
-              isDark ? 'text-blue-400' : 'text-blue-600'
-              }`}>
-              <Code2 className="w-6 h-6" />
-              {language}
-              </h3>
+              <div className="flex items-center justify-between mb-6">
+                <h3 className={`text-2xl font-bold flex items-center gap-3 ${
+                isDark ? 'text-blue-400' : 'text-blue-600'
+                }`}>
+                <Code2 className="w-6 h-6" />
+                {language}
+                </h3>
+                {/* AI BUTTON FOR STARTER CODE - Add this section */}
+                <button
+                  type="button"
+                  onClick={generateStarterCodeWithAI}
+                  disabled={isGeneratingStarterCode}
+                  className={`btn btn-circle btn-sm shadow-lg transition-all duration-200 hover:scale-110 bg-white hover:bg-gray-100 border-2 border-green-500 hover:border-green-600`}
+                  title="Generate starter code with AI"
+                >
+                  {isGeneratingStarterCode ? (
+                    <Loader className="w-4 h-4 animate-spin text-green-600" />
+                  ) : (
+                    <img src="/AI-sm.svg" alt="AI" className="w-4 h-4" />
+                  )}
+                </button>
+              </div>
 
               <div className="space-y-8">
               {/* Starter Code */}
@@ -1423,11 +1976,27 @@ const CreateProblemForm = () => {
                 : 'bg-white border-gray-200'
               }`}>
                 <div className="p-6">
-                <h4 className={`font-bold text-lg mb-4 ${
-                  isDark ? 'text-gray-200' : 'text-gray-800'
-                }`}>
+                <div className="flex items-center justify-between mb-4">
+                  <h4 className={`font-bold text-lg ${
+                    isDark ? 'text-gray-200' : 'text-gray-800'
+                  }`}>
                   📝 Example
-                </h4>
+                  </h4>
+                  {/* AI BUTTON FOR EXAMPLES */}
+                  <button
+                    type="button"
+                    onClick={generateExamplesWithAI}
+                    disabled={isGeneratingExamples}
+                    className={`btn btn-circle btn-sm shadow-lg transition-all duration-200 hover:scale-110 bg-white hover:bg-gray-100 border-2 border-blue-500 hover:border-blue-600`}
+                    title="Generate examples with AI"
+                  >
+                    {isGeneratingExamples ? (
+                      <Loader className="w-4 h-4 animate-spin text-blue-600" />
+                    ) : (
+                      <img src="/AI-sm.svg" alt="AI" className="w-4 h-4" />
+                    )}
+                  </button>
+                </div>
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   <div className="form-control">
                   <label className="label">
@@ -1474,7 +2043,7 @@ const CreateProblemForm = () => {
                     </span>
                   </label>
                   <textarea
-                    className={`textarea textarea-bordered min-h-24 w-full p-3 resize-y transition-all duration-200 focus:scale-105 ${
+                    className={`textarea textarea-bordered min-h-32 w-full p-3 resize-y transition-all duration-200 focus:scale-105 ${
                     isDark 
                       ? 'bg-gray-700 border-gray-600 text-white focus:border-blue-500' 
                       : 'bg-white border-gray-300 text-gray-900 focus:border-blue-500'
@@ -1523,13 +2092,29 @@ const CreateProblemForm = () => {
                       />
                     </div>
                     <div className="form-control">
-                      <label className="label">
-                        <span className={`label-text font-bold text-lg ${
-                          isDark ? 'text-gray-300' : 'text-gray-700'
-                        }`}>
-                          Hints (Optional)
-                        </span>
-                      </label>
+                      <div className="flex items-center justify-between mb-2">
+                        <label className="label">
+                          <span className={`label-text font-bold text-lg ${
+                            isDark ? 'text-gray-300' : 'text-gray-700'
+                          }`}>
+                            Hints (Optional)
+                          </span>
+                        </label>
+                        {/* AI BUTTON FOR HINTS */}
+                        <button
+                          type="button"
+                          onClick={generateHintsWithAI}
+                          disabled={isGeneratingHints}
+                          className={`btn btn-circle btn-sm shadow-lg transition-all duration-200 hover:scale-110 bg-white hover:bg-gray-100 border-2 border-yellow-500 hover:border-yellow-600`}
+                          title="Generate hints with AI"
+                        >
+                          {isGeneratingHints ? (
+                            <Loader className="w-4 h-4 animate-spin text-yellow-600" />
+                          ) : (
+                            <img src="/AI-sm.svg" alt="AI" className="w-4 h-4" />
+                          )}
+                        </button>
+                      </div>
                       <textarea
                         className={`textarea textarea-bordered min-h-24 w-full p-3 resize-y transition-all duration-200 focus:scale-105 ${
                           isDark 

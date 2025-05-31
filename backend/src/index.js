@@ -48,6 +48,8 @@ import problemRoutes from './routes/problem.routes.js';
 import executionRoute from './routes/executeCode.routes.js';
 import submissionRoutes from "./routes/submission.routes.js"
 import playlistRoutes from "./routes/playlist.routes.js"
+import testcaseRoutes from "./routes/testcase.routes.js"
+import chatRoutes from './routes/chat.routes.js';
 
 app.use('/api/v1/health', health);
 app.use('/api/v1/auth', authRoutes);
@@ -55,7 +57,22 @@ app.use('/api/v1/problems', problemRoutes);
 app.use('/api/v1/execute-code', executionRoute);
 app.use('/api/v1/submission', submissionRoutes);
 app.use('/api/v1/playlist', playlistRoutes);
+app.use('/api/v1/testcases', testcaseRoutes);
+app.use('/api/v1/chat', chatRoutes);
+
+// Add this after the route definitions to log all routes
+console.log('📚 Registered API Routes:');
+console.log('  ✅ /api/v1/health');
+console.log('  ✅ /api/v1/auth');
+console.log('  ✅ /api/v1/problems');
+console.log('  ✅ /api/v1/execute-code');
+console.log('  ✅ /api/v1/submission');
+console.log('  ✅ /api/v1/playlist');
+console.log('  ✅ /api/v1/testcases');
+console.log('  ✅ /api/v1/chat'); // This should appear
 
 app.listen(port, () => {
   console.log(`🚀 SheetCode API Server running on PORT: ${port}`);
+  console.log(`🔗 API Base URL: http://localhost:${port}/api/v1`);
+  console.log(`💬 Chat endpoint: http://localhost:${port}/api/v1/chat/problem-discussion`);
 });
