@@ -1,56 +1,102 @@
 import React from 'react';
-import { ArrowRight, Code2 } from 'lucide-react';
-
+import { ArrowRight, Code2, Sparkles, Trophy, Users, Zap } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { useAuthStore } from '../store/useAuthStore';
 
 function Hero() {
+  const { authUser } = useAuthStore();
+
   return (
-    <div className="h-[100vh] pt-[5vh] bg-gradient-to-bl from-[#ffe4e6] to-[#ccfbf1] dark:bg-gradient-to-r dark:from-[#0f172a] dark:to-[#334155] flex flex-col items-center justify-center text-gray-900 dark:text-white px-3 sm:px-4">
-      <div className="container mx-auto max-w-6xl py-8 md:py-12">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 md:gap-12 items-center">
+    <div className="min-h-screen relative overflow-hidden bg-gradient-to-br from-slate-100 to-white dark:from-slate-950 dark:to-slate-900">
+      {/* Animated background patterns */}
+      <div className="absolute inset-0 overflow-hidden">
+        <div className="absolute top-0 left-0 w-full h-full bg-grid-slate-200/50 dark:bg-grid-slate-800/30 [mask-image:radial-gradient(ellipse_at_center,transparent_20%,black)]" />
+        <div className="absolute inset-0 bg-gradient-to-br from-red-500/10 to-blue-500/10 dark:from-red-500/5 dark:to-blue-500/5 animate-pulse" />
+      </div>
+
+      <div className="relative container mx-auto px-4 py-20 lg:py-32">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-20 items-center">
           {/* Left Column - Text Content */}
-          <div className="text-center lg:text-left mb-6 lg:mb-0">
-            <div className="flex flex-wrap gap-2 items-center text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-4 sm:mb-6 lg:mb-8 justify-center lg:justify-start">
-              <Code2 className="h-6 w-6 sm:h-8 sm:w-8 md:h-10 md:w-10 text-red-500 dark:text-red-600" />
-              <span className="text-red-600 dark:text-red-500">Sheet</span>
-              <span className="text-blue-800 dark:text-blue-500">Code</span>
+          <div className="text-center lg:text-left space-y-8">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-red-500/10 to-blue-500/10 dark:from-red-500/20 dark:to-blue-500/20 border border-slate-200 dark:border-slate-800">
+              <Sparkles className="w-5 h-5 text-red-500" />
+              <span className="text-sm font-medium bg-gradient-to-r from-red-600 to-blue-600 bg-clip-text text-transparent">
+                The Next Generation Coding Platform
+              </span>
             </div>
-            
-            <h3 className="text-lg sm:text-xl md:text-2xl text-gray-700 dark:text-gray-300 mb-3 sm:mb-4">
-              Personalized Practice, Real Results.
-            </h3>
-            
-            <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 mb-6 sm:mb-8 max-w-xl mx-auto lg:mx-0">
-              Master coding challenges, prepare for interviews, and track your progress with personalized problem sets tailored to your skill level.
+
+            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight">
+              <span className="bg-gradient-to-r from-red-600 to-blue-600 bg-clip-text text-transparent">
+                Master Coding.
+              </span>
+              <br />
+              <span className="text-slate-900 dark:text-white">
+                Achieve Excellence.
+              </span>
+            </h1>
+
+            <p className="text-lg sm:text-xl text-slate-700 dark:text-slate-300 max-w-2xl mx-auto lg:mx-0">
+              Join thousands of developers mastering algorithms and data structures through our curated problem sets and intelligent learning system.
             </p>
-            
-            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center lg:justify-start">
-              <button className="px-4 sm:px-6 py-2 sm:py-3 bg-red-600 text-white cursor-pointer text-sm sm:text-base font-semibold rounded-lg shadow-md inline-flex items-center justify-center transition-all">
-                Get Started <ArrowRight className="ml-2 h-4 w-4 font-bold" />
-              </button>
-              <button className="px-4 sm:px-6 py-2 sm:py-3 bg-white/80 dark:bg-slate-800 hover:bg-white cursor-pointer dark:hover:bg-slate-800 text-gray-800 dark:text-white text-sm sm:text-base font-semibold rounded-lg shadow-md transition-all">
-                Learn More
-              </button>
+
+            <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
+              {authUser ? (
+                <Link to="/problems" className="inline-flex items-center justify-center px-6 py-3 text-base font-semibold text-white bg-gradient-to-r from-red-600 to-blue-600 rounded-lg shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200">
+                  Start Solving
+                  <ArrowRight className="ml-2 w-5 h-5" />
+                </Link>
+              ) : (
+                <Link to="/signup" className="inline-flex items-center justify-center px-6 py-3 text-base font-semibold text-white bg-gradient-to-r from-red-600 to-blue-600 rounded-lg shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200">
+                  Get Started
+                  <ArrowRight className="ml-2 w-5 h-5" />
+                </Link>
+              )}
+              <Link to="/sheets" className="inline-flex items-center justify-center px-6 py-3 text-base font-semibold text-slate-900 dark:text-white bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200">
+                Explore Sheets
+              </Link>
             </div>
           </div>
-          
-          {/* Right Column - Feature Cards */}
-          <div className="grid grid-cols-1 gap-3 sm:gap-4 cursor-pointer">
-            <div className="bg-white/80 dark:bg-slate-800/50 p-4 sm:p-6 rounded-xl shadow-md border border-white/40 dark:border-slate-700/50 transform hover:-translate-y-1 transition-all">
-              <h3 className="font-bold text-base sm:text-lg mb-1 sm:mb-2 text-primary dark:text-sky-400">1000+ Coding Problems</h3>
-              <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">Access a vast library of coding challenges across different difficulty levels and domains.</p>
-            </div>
-            
-            <div className="bg-white/80 dark:bg-slate-800/50 p-4 sm:p-6 rounded-xl shadow-md border border-white/40 dark:border-slate-700/50 transform hover:-translate-y-1 transition-all">
-              <h3 className="font-bold text-base sm:text-lg mb-1 sm:mb-2 text-primary dark:text-sky-400">20+ Curated Sheets</h3>
-              <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">Follow expert-crafted problem sheets that progressively build your skills.</p>
-            </div>
-            
-            <div className="bg-white/80 dark:bg-slate-800/50 p-4 sm:p-6 rounded-xl shadow-md border border-white/40 dark:border-slate-700/50 transform hover:-translate-y-1 transition-all">
-              <h3 className="font-bold text-base sm:text-lg mb-1 sm:mb-2 text-primary dark:text-sky-400">Track Your Progress</h3>
-              <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">Monitor your performance with detailed analytics and see how you improve over time.</p>
-            </div>
+
+          {/* Right Column - Stats & Features */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+            <StatsCard
+              icon={<Trophy className="w-8 h-8 text-yellow-500" />}
+              title="1000+"
+              description="Coding Problems"
+              gradient="from-yellow-500/20 to-orange-500/20"
+            />
+            <StatsCard
+              icon={<Users className="w-8 h-8 text-blue-500" />}
+              title="50K+"
+              description="Active Users"
+              gradient="from-blue-500/20 to-cyan-500/20"
+            />
+            <StatsCard
+              icon={<Code2 className="w-8 h-8 text-red-500" />}
+              title="20+"
+              description="Curated Sheets"
+              gradient="from-red-500/20 to-pink-500/20"
+            />
+            <StatsCard
+              icon={<Zap className="w-8 h-8 text-purple-500" />}
+              title="24/7"
+              description="AI Support"
+              gradient="from-purple-500/20 to-indigo-500/20"
+            />
           </div>
         </div>
+      </div>
+    </div>
+  );
+}
+
+function StatsCard({ icon, title, description, gradient }) {
+  return (
+    <div className={`p-6 rounded-2xl bg-gradient-to-br ${gradient} border border-slate-200/50 dark:border-slate-800/50 backdrop-blur-sm transform hover:-translate-y-1 transition-all duration-200`}>
+      <div className="bg-white dark:bg-slate-900 rounded-xl p-4 shadow-lg">
+        {icon}
+        <h3 className="text-2xl font-bold mt-4 text-slate-900 dark:text-white">{title}</h3>
+        <p className="text-slate-600 dark:text-slate-400">{description}</p>
       </div>
     </div>
   );
