@@ -426,20 +426,17 @@ function Profile() {
   const nextLeagueInfo = getNextLeagueProgress(authUser?.league || 'BRONZE', stats.totalSolved);
 
   return (
-    <div className="min-h-screen bg-slate-100 dark:bg-slate-900 text-black dark:text-white">
-      {/* Hero Banner with Personal Details - Now with inline editing */}
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white">
+      {/* Hero Banner with Personal Details */}
       <section className="relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-gray-900 via-red-900 to-blue-900 overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-r from-red-600/20 via-transparent to-blue-600/20"></div>
-          <div className="absolute -inset-[10px] bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmZmZmYiIGZpbGwtb3BhY2l0eT0iMC4xIj48cGF0aCBkPSJNMzYgMzRjMC0yLjIxLTEuNzktNC00LTRzLTQgMS43OS00IDQgMS43OSA0IDQgNCAzLjk4LTEuNzggNC00ek02MCAxMmMwIDYuNjQtNS4zOCAxMi0xMiAxMi02LjY0IDAtMTItNS4zNi0xMi0xMkMzNiA1LjM2IDQxLjM2IDAgNDggMGM2LjYyIDAgMTIgNS4zNiAxMiAxMnptLTI0IDZjMC00LjQyLTMuNTgtOC04LThzLTggMy41OC04IDggMy41OCA4IDggOGM0LjQyIDAgOC0zLjU4IDgtOHoiLz48L2c+PC9nPjwvc3ZnPg==')] opacity-10 animate-[spin_80s_linear_infinite]"></div>
-          <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-tl from-black/30 via-transparent to-red-600/20"></div>
-        </div>
+        <div className="absolute inset-0 bg-slate-900 dark:bg-black"></div>
+        <div className="absolute inset-0 bg-red-900/20"></div>
         
         <div className="container mx-auto relative z-10">
           <div className="flex flex-col md:flex-row items-center md:items-start gap-8 py-12 px-4">
-            {/* Avatar Section with inline editing */}
+            {/* Avatar Section */}
             <div className="relative group">
-              <div className="w-36 h-36 rounded-full bg-white dark:bg-gray-800 border-4 border-white shadow-xl overflow-hidden flex items-center justify-center">
+              <div className="w-36 h-36 rounded-full bg-white dark:bg-slate-800 border-4 border-white shadow-2xl overflow-hidden flex items-center justify-center">
                 {avatarPreview ? (
                   <img 
                     src={avatarPreview} 
@@ -447,19 +444,22 @@ function Profile() {
                     className="w-full h-full object-cover" 
                   />
                 ) : (
-                  <UserCircle className="w-32 h-32 text-gray-400" />
+                  <UserCircle className="w-32 h-32 text-slate-400" />
                 )}
               </div>
-              <div className="absolute -bottom-2 -right-2 bg-green-500 rounded-full p-1 border-2 border-white">
+              
+              <div className="absolute -bottom-2 -right-2 bg-green-500 rounded-full p-2 border-4 border-white shadow-lg">
                 <CheckCircle className="w-6 h-6 text-white" />
               </div>
+              
               <button
                 onClick={() => fileInputRef.current?.click()}
-                className="absolute bottom-0 right-0 bg-blue-600 hover:bg-blue-700 opacity-0 group-hover:opacity-100 transition-opacity rounded-full p-2 shadow-md border-2 border-white"
+                className="absolute bottom-0 right-0 bg-blue-600 hover:bg-blue-700 opacity-0 group-hover:opacity-100 transition-all rounded-full p-2 shadow-lg border-4 border-white transform hover:scale-110"
                 title="Change Avatar"
               >
                 <Camera className="w-4 h-4 text-white" />
               </button>
+              
               <input
                 type="file"
                 ref={fileInputRef}
@@ -470,22 +470,27 @@ function Profile() {
             </div>
             
             <div className="flex-1 text-center md:text-left">
-              <div className="flex items-center justify-center md:justify-start gap-2 mb-2" dir="ltr">
+              <div className="flex items-center justify-center md:justify-start gap-3 mb-3">
                 <EditableField 
                   field="name"
                   value={authUser.name}
                   placeholder="Enter your name"
                 />
                 
-                <div className={`bg-gradient-to-r ${getLeagueColor(authUser?.league || 'BRONZE')} ml-2 px-3 py-1 rounded-full text-white text-sm font-bold flex items-center gap-2 shadow-lg`}>
+                <div className={`px-4 py-2 rounded-full text-white text-sm font-bold flex items-center gap-2 shadow-lg ${
+                  authUser?.league === 'BRONZE' ? 'bg-amber-700' :
+                  authUser?.league === 'SILVER' ? 'bg-gray-500' :
+                  authUser?.league === 'GOLD' ? 'bg-yellow-500' :
+                  authUser?.league === 'PLATINUM' ? 'bg-cyan-500' : 'bg-amber-700'
+                }`}>
                   {getLeagueIcon(authUser?.league || 'BRONZE')}
                   {authUser?.league || 'BRONZE'} League
                 </div>
               </div>
               
-              <p className="text-lg text-white/80 font-medium mb-2" dir="ltr">@{authUser.username || authUser.name?.toLowerCase().replace(/\s/g, '')}</p>
+              <p className="text-lg text-white/90 font-medium mb-3">@{authUser.username || authUser.name?.toLowerCase().replace(/\s/g, '')}</p>
               
-              <div dir="ltr" style={{ direction: 'ltr', textAlign: 'left' }}>
+              <div className="mb-4">
                 <EditableField 
                   field="bio"
                   value={authUser.bio}
@@ -494,114 +499,72 @@ function Profile() {
                 />
               </div>
               
-              <div className="flex flex-wrap gap-4 justify-center md:justify-start mb-6" dir="ltr">
-                <div className="flex items-center gap-2 bg-white/20 px-3 py-1.5 rounded-full text-white group">
-                  <Mail className="w-4 h-4" />
-                  {editingField === 'email' ? (
-                    <div className="flex items-center gap-2" dir="ltr">
-                      <input
-                        type="email"
-                        value={editForm.email}
-                        onChange={(e) => handleFieldChange('email', e.target.value)}
-                        onKeyPress={(e) => e.key === 'Enter' && handleFieldSubmit('email')}
-                        className="bg-transparent text-white placeholder-white/70 text-sm outline-none border-b border-white/50 focus:border-white"
-                        placeholder="Enter email"
-                        autoFocus
-                        dir="ltr"
-                      />
-                      <button
-                        onClick={() => handleFieldSubmit('email')}
-                        className="p-1 hover:bg-white/20 rounded"
-                        disabled={isSubmitting}
-                      >
-                        {isSubmitting ? (
-                          <Loader className="w-3 h-3 animate-spin text-white" />
-                        ) : (
-                          <Check className="w-3 h-3 text-white" />
-                        )}
-                      </button>
-                      <button
-                        onClick={() => handleCancelEdit('email')}
-                        className="p-1 hover:bg-white/20 rounded"
-                      >
-                        <X className="w-3 h-3 text-white" />
-                      </button>
-                    </div>
-                  ) : (
-                    <>
-                      <span className="text-sm" dir="ltr">{authUser.email}</span>
-                      <button
-                        onClick={() => setEditingField('email')}
-                        className="opacity-0 group-hover:opacity-100 p-1 hover:bg-white/20 rounded transition-all"
-                      >
-                        <Edit3 className="w-3 h-3 text-white" />
-                      </button>
-                    </>
-                  )}
-                </div>
-                
-                <div className="flex items-center gap-2 bg-white/20 px-3 py-1.5 rounded-full text-white">
+              <div className="flex flex-wrap items-center justify-center md:justify-start gap-4 mb-4">
+                <div className="flex items-center gap-2 bg-white/20 backdrop-blur-sm px-3 py-2 rounded-full text-white/90 border border-white/30">
                   <Calendar className="w-4 h-4" />
-                  <span className="text-sm" dir="ltr">Joined {new Date(authUser.createdAt).toLocaleDateString()}</span>
+                  <span className="text-sm">Joined {new Date(authUser.createdAt).toLocaleDateString()}</span>
                 </div>
                 
-                <div className="flex items-center gap-2 bg-white/20 px-3 py-1.5 rounded-full text-white">
+                <div className="flex items-center gap-2 bg-white/20 backdrop-blur-sm px-3 py-2 rounded-full text-white/90 border border-white/30">
                   <Award className="w-4 h-4" />
-                  <span className="text-sm uppercase" dir="ltr">{authUser.role}</span>
+                  <span className="text-sm uppercase">{authUser.role}</span>
                 </div>
               </div>
               
-              <div className="flex gap-4 justify-center md:justify-start flex-wrap" dir="ltr">
+              <div className="flex gap-4 justify-center md:justify-start flex-wrap">
                 {renderSocialLink(authUser.githubUrl, Github, 'githubUrl')}
                 {renderSocialLink(authUser.linkedinUrl, Linkedin, 'linkedinUrl')}
                 {renderSocialLink(authUser.twitterUrl, Twitter, 'twitterUrl')}
               </div>
             </div>
 
-            {/* Stats Cards - Desktop (keeping existing) */}
-            <div className="hidden md:flex flex-col gap-4 min-w-[260px] backdrop-blur-md bg-black/20 border border-red-500/30 p-6 rounded-2xl shadow-xl">
+            {/* Stats Cards - Enhanced with app theme */}
+            <div className="hidden md:flex flex-col gap-4 min-w-[280px] bg-black/20 border border-red-500/30 p-6 rounded-2xl shadow-2xl backdrop-blur-md">
               <div className="grid grid-cols-2 gap-4">
-                <div className="text-center p-3 bg-red-600/20 border border-red-500/30 rounded-xl backdrop-blur-sm">
+                <div className="text-center p-4 bg-red-600/30 border border-red-500/40 rounded-xl backdrop-blur-sm">
                   <div className="text-3xl font-bold text-white">{stats.totalSolved}</div>
                   <div className="text-sm text-white/80 font-medium">Problems Solved</div>
                 </div>
-                <div className="text-center p-3 bg-blue-600/20 border border-blue-500/30 rounded-xl backdrop-blur-sm">
+                <div className="text-center p-4 bg-blue-600/30 border border-blue-500/40 rounded-xl backdrop-blur-sm">
                   <div className="text-3xl font-bold text-white">{stats.sheetsCreated}</div>
                   <div className="text-sm text-white/80 font-medium">Study Sheets</div>
                 </div>
               </div>
               
-              <div className="w-full bg-black/30 border border-gray-500/30 h-2 rounded-full mt-2">
-                {stats.totalSolved > 0 && (
-                  <div className="flex h-full rounded-full overflow-hidden">
-                    <div 
-                      className="bg-gradient-to-r from-green-500 to-green-400" 
-                      style={{width: `${(stats.easy / stats.totalSolved) * 100}%`}}
-                    ></div>
-                    <div 
-                      className="bg-gradient-to-r from-yellow-500 to-orange-400" 
-                      style={{width: `${(stats.medium / stats.totalSolved) * 100}%`}}
-                    ></div>
-                    <div 
-                      className="bg-gradient-to-r from-red-500 to-red-400" 
-                      style={{width: `${(stats.hard / stats.totalSolved) * 100}%`}}
-                    ></div>
+              <div className="text-center text-white/90">
+                <div className="text-lg font-semibold mb-2">Progress Breakdown</div>
+                <div className="w-full bg-black/30 border border-slate-500/30 h-3 rounded-full overflow-hidden">
+                  {stats.totalSolved > 0 && (
+                    <div className="flex h-full">
+                      <div 
+                        className="bg-green-500" 
+                        style={{width: `${(stats.easy / stats.totalSolved) * 100}%`}}
+                      ></div>
+                      <div 
+                        className="bg-yellow-500" 
+                        style={{width: `${(stats.medium / stats.totalSolved) * 100}%`}}
+                      ></div>
+                      <div 
+                        className="bg-red-500" 
+                        style={{width: `${(stats.hard / stats.totalSolved) * 100}%`}}
+                      ></div>
+                    </div>
+                  )}
+                </div>
+                
+                <div className="flex justify-between text-xs text-white/80 mt-2">
+                  <div className="flex items-center gap-1">
+                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                    Easy: {stats.easy}
                   </div>
-                )}
-              </div>
-              
-              <div className="flex justify-between text-xs text-white/80">
-                <div className="flex items-center">
-                  <div className="w-2 h-2 bg-green-500 rounded-full mr-1"></div>
-                  Easy: {stats.easy}
-                </div>
-                <div className="flex items-center">
-                  <div className="w-2 h-2 bg-yellow-500 rounded-full mr-1"></div>
-                  Medium: {stats.medium}
-                </div>
-                <div className="flex items-center">
-                  <div className="w-2 h-2 bg-red-500 rounded-full mr-1"></div>
-                  Hard: {stats.hard}
+                  <div className="flex items-center gap-1">
+                    <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
+                    Medium: {stats.medium}
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                    Hard: {stats.hard}
+                  </div>
                 </div>
               </div>
             </div>
@@ -609,69 +572,69 @@ function Profile() {
         </div>
         
         <div className="absolute bottom-0 left-0 right-0">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 80" className="fill-slate-100 dark:fill-slate-900 w-full h-16">
-            <path d="M0,64L80,64C160,64,320,64,480,53.3C640,43,800,21,960,16C1120,11,1280,21,1360,26.7L1440,32L1440,320L1360,320C1280,320,1120,320,960,320C800,320,640,320,480,320C320,320,160,320,80,320L0,320Z"></path>
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 80" className="fill-slate-50 dark:fill-slate-900 w-full h-16">
+            <path d="M0,32L48,37.3C96,43,192,53,288,58.7C384,64,480,64,576,58.7C672,53,768,43,864,42.7C960,43,1056,53,1152,58.7C1248,64,1344,64,1392,64L1440,64L1440,80L1392,80C1344,80,1248,80,1152,80C1056,80,960,80,864,80C768,80,672,80,576,80C480,80,384,80,288,80C192,80,96,80,48,80L0,80Z"></path>
           </svg>
         </div>
       </section>
 
-      {/* Stats Cards - Mobile */}
-      <div className="md:hidden grid grid-cols-3 gap-3 mx-4 -mt-4">
-        <div className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-lg text-center">
-          <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">{stats.totalSolved}</div>
-          <div className="text-xs text-gray-600 dark:text-gray-400">Total</div>
-        </div>
-        <div className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-lg text-center">
-          <div className="flex justify-center gap-1">
-            <span className="text-green-500 font-bold text-xl">{stats.easy}</span>
-            <span className="text-yellow-500 font-bold text-xl">{stats.medium}</span>
-            <span className="text-red-500 font-bold text-xl">{stats.hard}</span>
-          </div>
-          <div className="text-xs text-gray-600 dark:text-gray-400">E / M / H</div>
-        </div>
-        <div className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-lg text-center">
-          <div className="text-2xl font-bold text-red-600 dark:text-red-400">{stats.sheetsCreated}</div>
-          <div className="text-xs text-gray-600 dark:text-gray-400">Sheets</div>
-        </div>
-      </div>
-
       {/* Main Content */}
       <div className="container mx-auto px-4 py-8">
-        {/* Tabs Navigation */}
-        <div className="flex border-b border-gray-200 dark:border-gray-700 mb-8">
+        {/* Enhanced Mobile Stats - Show on mobile only */}
+        <div className="md:hidden mb-8">
+          <div className="grid grid-cols-2 gap-4 mb-6">
+            <div className="bg-white dark:bg-slate-800 p-4 rounded-xl shadow-lg text-center border border-slate-200 dark:border-slate-700">
+              <div className="text-2xl font-bold text-red-600 dark:text-red-400">{stats.totalSolved}</div>
+              <div className="text-xs text-slate-600 dark:text-slate-400">Total</div>
+            </div>
+            <div className="bg-white dark:bg-slate-800 p-4 rounded-xl shadow-lg text-center border border-slate-200 dark:border-slate-700">
+              <div className="flex justify-center gap-1">
+                <span className="text-green-500 font-bold text-xl">{stats.easy}</span>
+                <span className="text-yellow-500 font-bold text-xl">{stats.medium}</span>
+                <span className="text-red-500 font-bold text-xl">{stats.hard}</span>
+              </div>
+              <div className="text-xs text-slate-600 dark:text-slate-400">E / M / H</div>
+            </div>
+          </div>
+        </div>
+
+        {/* Enhanced Tabs Navigation */}
+        <div className="flex border-b border-slate-200 dark:border-slate-700 mb-8 bg-white dark:bg-slate-800 rounded-t-xl shadow-sm">
           <button
-            className={`flex items-center gap-2 py-3 px-6 font-medium text-lg transition-all relative ${
+            className={`flex items-center gap-2 py-4 px-6 font-medium text-lg transition-all relative ${
               activeTab === 'problems'
-                ? 'text-red-600 dark:text-red-400 border-b-2 border-red-600 dark:border-red-400'
-                : 'text-gray-500 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400'
+                ? 'text-red-600 dark:text-red-400 border-b-2 border-red-600 dark:border-red-400 bg-red-50 dark:bg-red-900/10'
+                : 'text-slate-500 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/10'
             }`}
             onClick={() => setActiveTab('problems')}
           >
             <Code className="w-5 h-5" />
             Solved Problems
-            <span className="absolute top-0 right-0 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+            <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-6 w-6 flex items-center justify-center shadow-lg">
               {stats.totalSolved}
             </span>
           </button>
+          
           <button
-            className={`flex items-center gap-2 py-3 px-6 font-medium text-lg transition-all relative ${
+            className={`flex items-center gap-2 py-4 px-6 font-medium text-lg transition-all relative ${
               activeTab === 'sheets'
-                ? 'text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400'
-                : 'text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400'
+                ? 'text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400 bg-blue-50 dark:bg-blue-900/10'
+                : 'text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/10'
             }`}
             onClick={() => setActiveTab('sheets')}
           >
             <BookOpen className="w-5 h-5" />
             My Study Sheets
-            <span className="absolute top-0 right-0 bg-blue-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+            <span className="absolute -top-1 -right-1 bg-blue-500 text-white text-xs rounded-full h-6 w-6 flex items-center justify-center shadow-lg">
               {stats.sheetsCreated}
             </span>
           </button>
+          
           <button
-            className={`flex items-center gap-2 py-3 px-6 font-medium text-lg transition-all ${
+            className={`flex items-center gap-2 py-4 px-6 font-medium text-lg transition-all ${
               activeTab === 'stats'
-                ? 'text-purple-600 dark:text-purple-400 border-b-2 border-purple-600 dark:border-purple-400'
-                : 'text-gray-500 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400'
+                ? 'text-slate-600 dark:text-slate-400 border-b-2 border-slate-600 dark:border-slate-400 bg-slate-50 dark:bg-slate-900/10'
+                : 'text-slate-500 dark:text-slate-400 hover:text-slate-600 dark:hover:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-900/10'
             }`}
             onClick={() => setActiveTab('stats')}
           >
@@ -680,31 +643,31 @@ function Profile() {
           </button>
         </div>
 
-        {/* Dynamic Content Based on Tab - Keep all existing content */}
+        {/* Dynamic Content Based on Tab */}
         {activeTab === 'problems' && (
           <div className="fade-in">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
-              <h2 className="text-2xl font-bold text-black dark:text-white flex items-center">
+              <h2 className="text-2xl font-bold text-slate-900 dark:text-white flex items-center">
                 <CheckCircle className="w-6 h-6 mr-2 text-green-500" /> 
                 Solved Problems
               </h2>
               
               <div className="flex flex-col md:flex-row gap-3 w-full md:w-auto">
                 <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
                   <input
                     type="text"
                     placeholder="Search problems..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-10 pr-4 py-2 w-full md:w-64 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none"
+                    className="pl-10 pr-4 py-2 w-full md:w-64 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none"
                   />
                 </div>
                 
                 <select
                   value={difficultyFilter}
                   onChange={(e) => setDifficultyFilter(e.target.value)}
-                  className="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none appearance-none cursor-pointer"
+                  className="px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none appearance-none cursor-pointer"
                 >
                   <option value="ALL">All Difficulties</option>
                   <option value="EASY">Easy</option>
@@ -822,7 +785,7 @@ function Profile() {
         {activeTab === 'sheets' && (
           <div className="fade-in">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
-              <h2 className="text-2xl font-bold text-black dark:text-white flex items-center">
+              <h2 className="text-2xl font-bold text-slate-900 dark:text-white flex items-center">
                 <BookOpen className="w-6 h-6 mr-2 text-blue-500" />
                 My Study Sheets
               </h2>

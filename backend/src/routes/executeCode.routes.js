@@ -1,9 +1,10 @@
 import express from 'express';
-import { isLoggedIn } from '../middleware/auth.middleware.js';
 import { executeCode } from '../controllers/executeCode.controller.js';
+import { isLoggedIn } from '../middleware/auth.middleware.js';
 
-const executionRoute = express.Router();
+const router = express.Router();
 
-executionRoute.post('/', isLoggedIn, executeCode);
+// Execute code endpoint
+router.post('/', isLoggedIn, executeCode);
 
-export default executionRoute;
+export default router;

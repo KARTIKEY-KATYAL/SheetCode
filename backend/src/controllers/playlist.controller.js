@@ -172,40 +172,51 @@ export const removeProblemFromPlaylist = asyncHandler(async (req, res) => {
 });
 
 export const updatePlaylist = asyncHandler(async (req, res) => {
-  const { id, name, description } = req.body;
-  
-  if (!id) {
-    return res.status(400).json(new ApiError(400, "Playlist ID is required"));
-  }
+  try {
+    const { playlistId } = req.params;
+    const { name, description, isPublic } = req.body;
+    const userId = req.user.id;
 
-  if (!name) {
-    return res.status(400).json(new ApiError(400, "Playlist name is required"));
-  }
-
-  // Verify the playlist belongs to the user
-  const existingPlaylist = await db.playlist.findUnique({
-    where: {
-      id,
-      userId: req.user.id
+    if (!playlistId) {
+      return res.status(400).json(new ApiError(400, 'Playlist ID is required'));
     }
-  });
 
-  if (!existingPlaylist) {
-    return res.status(404).json(new ApiError(404, "Playlist not found or unauthorized"));
+    // Check if playlist exists and belongs to user
+    const existingPlaylist = await db.playlist.findFirst({
+      where: {
+        id: playlistId,
+        userId: userId,
+      },
+    });
+
+    if (!existingPlaylist) {
+      return res.status(404).json(new ApiError(404, 'Playlist not found or access denied'));
+    }
+
+    // Update playlist
+    const updatedPlaylist = await db.playlist.update({
+      where: { id: playlistId },
+      data: {
+        ...(name && { name }),
+        ...(description && { description }),
+        ...(typeof isPublic === 'boolean' && { isPublic }),
+      },
+      include: {
+        problems: {
+          include: {
+            problem: true,
+          },
+        },
+      },
+    });
+
+    return res.status(200).json(
+      new ApiResponse(200, updatedPlaylist, 'Playlist updated successfully')
+    );
+  } catch (error) {
+    console.error('Error updating playlist:', error);
+    return res.status(500).json(
+      new ApiError(500, 'Error while updating playlist')
+    );
   }
-
-  // Update the playlist
-  const updatedPlaylist = await db.playlist.update({
-    where: {
-      id,
-    },
-    data: {
-      name,
-      description,
-    },
-  });
-
-  return res.status(200).json(
-    new ApiResponse(200, updatedPlaylist, "Playlist updated successfully")
-  );
 });

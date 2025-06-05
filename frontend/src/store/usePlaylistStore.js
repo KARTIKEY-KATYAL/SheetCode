@@ -21,7 +21,7 @@ export const usePlaylistStore = create((set, get) => ({
       return response.data.data;
     } catch (error) {
       console.error("Error creating playlist:", error);
-      toast.error(error.response?.data?.error || "Failed to create playlist");
+      toast.error(error.response?.data?.message || "Failed to create playlist");
       throw error;
     } finally {
       set({ isLoading: false });
@@ -46,9 +46,11 @@ export const usePlaylistStore = create((set, get) => ({
       set({ isLoading: true });
       const response = await axiosInstance.get(`/playlist/${playlistId}`);
       set({ currentPlaylist: response.data.data });
+      return response.data.data;
     } catch (error) {
       console.error("Error fetching playlist details:", error);
       toast.error("Failed to fetch playlist details");
+      throw error;
     } finally {
       set({ isLoading: false });
     }
@@ -64,9 +66,7 @@ export const usePlaylistStore = create((set, get) => ({
 
       const response = await axiosInstance.post(
         `/playlist/${playlistId}/problems`,
-        {
-          problemIds,
-        }
+        { problemIds }
       );
 
       console.log("API response:", response.data);
@@ -96,7 +96,7 @@ export const usePlaylistStore = create((set, get) => ({
     try {
       set({ isLoading: true });
       await axiosInstance.delete(`/playlist/${playlistId}/problems`, {
-        data: { problemIds }, // When sending data with DELETE, use the data property
+        data: { problemIds },
       });
 
       toast.success("Problem removed from playlist");
@@ -131,17 +131,38 @@ export const usePlaylistStore = create((set, get) => ({
     }
   },
 
+  // FIXED: Corrected parameter names and logic
   updatePlaylist: async (playlistData) => {
     try {
       set({ isLoading: true });
-      const response = await axiosInstance.patch("/playlist", playlistData);
+      
+      // Extract playlistId from the data
+      const playlistId = playlistData.id;
+      
+      if (!playlistId) {
+        throw new Error("Playlist ID is required for update");
+      }
+
+      console.log("Updating playlist:", playlistId, playlistData);
+      
+      // Make the API call with correct URL and data
+      const response = await axiosInstance.patch(`/playlist/${playlistId}`, {
+        name: playlistData.name,
+        description: playlistData.description,
+        isPublic: playlistData.isPublic
+      });
 
       // Update the playlists array with the updated playlist
       set((state) => ({
         playlists: state.playlists.map((p) =>
-          p.id === playlistData.id ? response.data.data : p
+          p.id === playlistId ? response.data.data : p
         ),
       }));
+
+      // Update current playlist if it's the one being updated
+      if (get().currentPlaylist?.id === playlistId) {
+        set({ currentPlaylist: response.data.data });
+      }
 
       toast.success("Sheet updated successfully");
       return response.data.data;

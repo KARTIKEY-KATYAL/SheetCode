@@ -12,7 +12,10 @@ import {
 const SubmissionList = ({ submissions, isLoading }) => {
   const safeParse = (data) => {
     try {
-      return JSON.parse(data);
+      if (!data || data === null || data === undefined) {
+        return [];
+      }
+      return typeof data === 'string' ? JSON.parse(data) : data;
     } catch (error) {
       console.error("Error parsing data:", error);
       return [];
@@ -20,47 +23,73 @@ const SubmissionList = ({ submissions, isLoading }) => {
   };
 
   const calculateAverageMemory = (memoryData) => {
-    const memoryArray = safeParse(memoryData).map((m) =>
-      parseFloat(m.split(" ")[0])
-    );
-    if (memoryArray.length === 0) return 0;
-    const mem = memoryArray.reduce((acc, curr) => acc + curr, 0) / memoryArray.length;
-    return parseFloat(mem.toFixed(3));
+    if (!memoryData) return '0';
+    
+    const memoryArray = safeParse(memoryData);
+    if (!Array.isArray(memoryArray) || memoryArray.length === 0) return '0';
+    
+    const validMemory = memoryArray
+      .map((m) => {
+        if (typeof m === 'string') {
+          const cleaned = m.replace(/[^\d.]/g, '');
+          return parseFloat(cleaned);
+        }
+        return parseFloat(m);
+      })
+      .filter(val => !isNaN(val) && val >= 0);
+    
+    if (validMemory.length === 0) return '0';
+    
+    const average = validMemory.reduce((sum, mem) => sum + mem, 0) / validMemory.length;
+    return average.toFixed(1);
   };
 
   const calculateAverageTime = (timeData) => {
-    const timeArray = safeParse(timeData).map((t) =>
-      parseFloat(t.split(" ")[0])
-    );
-    if (timeArray.length === 0) return 0;
-    const timee = timeArray.reduce((acc, curr) => acc + curr, 0) / timeArray.length;
-    return parseFloat(timee.toFixed(3));
+    if (!timeData) return '0';
+    
+    const timeArray = safeParse(timeData);
+    if (!Array.isArray(timeArray) || timeArray.length === 0) return '0';
+    
+    const validTimes = timeArray
+      .map((t) => {
+        if (typeof t === 'string') {
+          const cleaned = t.replace(/[^\d.]/g, '');
+          return parseFloat(cleaned);
+        }
+        return parseFloat(t);
+      })
+      .filter(val => !isNaN(val) && val >= 0);
+    
+    if (validTimes.length === 0) return '0';
+    
+    const average = validTimes.reduce((sum, time) => sum + time, 0) / validTimes.length;
+    return (average * 1000).toFixed(1); // Convert to milliseconds
   };
 
   const getStatusColor = (status) => {
     switch (status) {
-      case "ACCEPTED":
-        return "text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20";
-      case "WRONG_ANSWER":
-        return "text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20";
-      case "TIME_LIMIT_EXCEEDED":
-        return "text-yellow-600 dark:text-yellow-400 bg-yellow-50 dark:bg-yellow-900/20";
-      case "COMPILATION_ERROR":
-        return "text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-900/20";
+      case "Accepted":
+        return "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300";
+      case "Wrong Answer":
+        return "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300";
+      case "Time Limit Exceeded":
+        return "bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300";
+      case "Compilation Error":
+        return "bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300";
       default:
-        return "text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-900/20";
+        return "bg-gray-100 dark:bg-gray-900/30 text-gray-700 dark:text-gray-300";
     }
   };
 
   const getStatusIcon = (status) => {
     switch (status) {
-      case "ACCEPTED":
+      case "Accepted":
         return <CheckCircle2 className="w-4 h-4" />;
-      case "WRONG_ANSWER":
+      case "Wrong Answer":
         return <XCircle className="w-4 h-4" />;
-      case "TIME_LIMIT_EXCEEDED":
+      case "Time Limit Exceeded":
         return <Clock className="w-4 h-4" />;
-      case "COMPILATION_ERROR":
+      case "Compilation Error":
         return <AlertCircle className="w-4 h-4" />;
       default:
         return <XCircle className="w-4 h-4" />;
@@ -175,7 +204,7 @@ const SubmissionList = ({ submissions, isLoading }) => {
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300">
+                      <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300">
                         {sub.language}
                       </span>
                     </td>
@@ -232,7 +261,9 @@ const SubmissionList = ({ submissions, isLoading }) => {
                     </div>
                   </div>
                 </div>
-                <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300">
+
+                {/* Language */}
+                <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300">
                   {sub.language}
                 </span>
               </div>

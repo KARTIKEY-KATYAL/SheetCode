@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import Editor from "@monaco-editor/react";
+import { toast } from "react-hot-toast";
 import {
   Play,
   FileText,
@@ -13,6 +14,7 @@ import {
   BookOpen,
   Terminal,
   Code2,
+  Code,
   Users,
   ThumbsUp,
   Home,
@@ -30,6 +32,9 @@ import {
   Loader2,
   Sparkles,
   RefreshCw,
+  Eye,
+  EyeOff,
+  Info
 } from "lucide-react";
 
 import { useProblemStore } from "../store/useProblemStore";
@@ -38,7 +43,7 @@ import { getLanguageId } from "../lib/lang";
 import SubmissionResults from "../components/Submission";
 import { useSubmissionStore } from "../store/useSubmissionStore";
 import SubmissionList from "../components/SubmissionList"
-import { axiosInstance } from "../lib/axios"; // Import axiosInstance
+import { axiosInstance } from "../lib/axios";
 
 const ProblemPage = () => {
   const { id } = useParams();
@@ -56,9 +61,12 @@ const ProblemPage = () => {
   const [chatInitialized, setChatInitialized] = useState(false);
   const [isGeneratingHint, setIsGeneratingHint] = useState(false);
   const [aiGeneratedHints, setAiGeneratedHints] = useState([]);
+  const [showTestCases, setShowTestCases] = useState(false);
+  const [hasExecutedOrSubmitted, setHasExecutedOrSubmitted] = useState(false);
+  const [showCompleteCode, setShowCompleteCode] = useState(false);
 
   const {
-    submission: submissions,
+    submissions,
     isLoading: isSubmissionsLoading,
     getSubmissionForProblem,
     getSubmissionCountForProblem,
@@ -71,48 +79,82 @@ const ProblemPage = () => {
   const { executeCode, submission, isExecuting } = useExecutionStore();
   
   useEffect(() => {
-    getProblemById(id);
-    getSubmissionCountForProblem(id);
-    getProblemStats(id); // Fetch actual stats
-    loadUserLastSubmission();
-    
-    // Cleanup when component unmounts
+    const loadProblemData = async () => {
+      if (!id) {
+        console.error('No problem ID provided');
+        return;
+      }
+
+      try {
+        console.log('Loading problem data for ID:', id);
+        
+        // Load problem data first
+        await getProblemById(id);
+        
+        // Load stats in parallel (non-blocking)
+        Promise.all([
+          getProblemStats(id).catch(error => {
+            console.log("Stats not available:", error.message);
+            return null;
+          }),
+          getSubmissionCountForProblem(id).catch(error => {
+            console.log("Submission count not available:", error.message);
+            return 0;
+          })
+        ]);
+        
+        // Load user's last submission
+        loadUserLastSubmission();
+        
+      } catch (error) {
+        console.error("Error loading problem data:", error);
+        // Don't show toast here as getProblemById already handles it
+      }
+    };
+
+    loadProblemData();
+
     return () => {
       clearUserLastSubmission();
     };
-  }, [id]);
+  }, [id, getProblemById, getProblemStats, getSubmissionCountForProblem, clearUserLastSubmission]);
 
-  // Function to load user's last submission for this problem
   const loadUserLastSubmission = async () => {
+    if (!id) return;
+
     try {
-      setIsLoadingUserCode(true);
-      await getUserLastSubmission(id);
+      const lastSub = await getUserLastSubmission(id);
+      console.log('Loaded last submission:', lastSub);
+      
+      if (lastSub && lastSub.language === selectedLanguage) {
+        const codeToSet = lastSub.code || lastSub.sourceCode?.code || '';
+        if (codeToSet) {
+          setCode(codeToSet);
+          setHasExecutedOrSubmitted(true);
+        }
+      }
     } catch (error) {
-      console.error("Error loading user's last submission:", error);
-    } finally {
-      setIsLoadingUserCode(false);
+      console.error('Error loading user last submission:', error);
+      // Don't show error toast as this is not critical
     }
   };
 
-  // Load code when problem, selected language changes
   useEffect(() => {
     if (problem) {
-      // Set available languages and default to first available language
       const availableLanguages = Object.keys(problem.codeSnippets || {});
       if (availableLanguages.length > 0 && !availableLanguages.includes(selectedLanguage)) {
         setSelectedLanguage(availableLanguages[0]);
       }
 
-      // Load the appropriate code based on user submission or starter code
       if (userLastSubmission && userLastSubmission.language === selectedLanguage) {
-        // Load user's last submission code if available for this language
         setCode(userLastSubmission.code || problem.codeSnippets?.[selectedLanguage] || "");
+        setHasExecutedOrSubmitted(true);
       } else {
-        // Load starter code template if no previous submission
-        setCode(problem.codeSnippets?.[selectedLanguage] || "");
+        // Use original starter code as-is
+        const starterCode = problem.codeSnippets?.[selectedLanguage] || "";
+        setCode(starterCode);
       }
 
-      // Set test cases
       setTestCases(
         problem.testcases?.map((tc) => ({
           input: tc.input,
@@ -124,28 +166,258 @@ const ProblemPage = () => {
 
   useEffect(() => {
     if (activeTab === "submissions" && id) {
-      getSubmissionForProblem(id);
+      console.log('Loading submissions for problem:', id);
+      getSubmissionForProblem(id).then(subs => {
+        console.log('Loaded submissions:', subs?.length || 0);
+      });
     }
   }, [activeTab, id, getSubmissionForProblem]);
+
+  // Show test cases when execution is complete or submission is made
+  useEffect(() => {
+    if (submission) {
+      setShowTestCases(true);
+      setHasExecutedOrSubmitted(true);
+    }
+  }, [submission]);
+
+  // Track when submissions are made
+  useEffect(() => {
+    if (submissions && submissions.length > 0) {
+      setHasExecutedOrSubmitted(true);
+    }
+  }, [submissions]);
 
   const handleLanguageChange = (e) => {
     const lang = e.target.value;
     setSelectedLanguage(lang);
   };
 
-  // Function to reset to starter code
   const resetToStarterCode = () => {
     if (problem && selectedLanguage) {
-      setCode(problem.codeSnippets?.[selectedLanguage] || "");
+      // Use original starter code as-is
+      const starterCode = problem.codeSnippets?.[selectedLanguage] || "";
+      setCode(starterCode);
+      toast.success('Code reset to starter template');
     }
   };
 
-  // Function to toggle full screen
+  const calculateSuccessRate = () => {
+    // Enhanced success rate calculation with better fallbacks
+    if (problemStats) {
+      // Try different property names for success rate
+      const successRate = problemStats.successRate ?? 
+                         problemStats.acceptanceRate ?? 
+                         problemStats.acceptedRate;
+      
+      if (typeof successRate === 'number' && !isNaN(successRate)) {
+        return `${Math.round(successRate)}%`;
+      }
+      
+      // Calculate from accepted/total submissions
+      const accepted = problemStats.acceptedSubmissions ?? problemStats.accepted ?? 0;
+      const total = problemStats.totalSubmissions ?? problemStats.total ?? 0;
+      
+      if (total > 0) {
+        const rate = (accepted / total) * 100;
+        return `${Math.round(rate)}%`;
+      }
+    }
+    
+    // Fallback to estimated rates based on difficulty
+    if (submissionCount && submissionCount > 0) {
+      const estimatedRate = {
+        'EASY': 75,
+        'MEDIUM': 45,
+        'HARD': 25
+      }[problem?.difficulty] || 50;
+      
+      return `~${estimatedRate}%`;
+    }
+    
+    return "N/A";
+  };
+
+  // Enhanced hint generation with better error handling (SINGLE DECLARATION)
+  const generateHint = async () => {
+    if (!problem) {
+      toast.error('Problem data not available');
+      return;
+    }
+
+    setIsGeneratingHint(true);
+    try {
+      const response = await axiosInstance.post('/chat/generate-hints', {
+        problemTitle: problem.title,
+        problemDescription: problem.description || '',
+        difficulty: problem.difficulty || 'MEDIUM',
+        tags: Array.isArray(problem.tags) ? problem.tags : [],
+        constraints: problem.constraints || '',
+        existingHints: aiGeneratedHints.length,
+        currentHintLevel: Math.min(aiGeneratedHints.length + 1, 5)
+      });
+      
+      const responseData = response.data?.data || response.data;
+      
+      if (responseData?.hints && Array.isArray(responseData.hints) && responseData.hints.length > 0) {
+        const newHints = responseData.hints.map(h => 
+          typeof h === 'string' ? h : h.hint || 'Hint not available'
+        );
+        setAiGeneratedHints(prev => [...prev, ...newHints]);
+        toast.success('New hint generated!');
+      } else {
+        throw new Error('No hints in response');
+      }
+    } catch (error) {
+      console.error('Failed to generate hint:', error);
+      
+      // Provide intelligent fallback hints based on difficulty and existing hints
+      const fallbackHints = {
+        0: "Start by understanding the problem requirements and constraints carefully.",
+        1: "Think about which data structures would be most suitable for this problem.",
+        2: "Consider the time and space complexity requirements.",
+        3: "Look for patterns or mathematical relationships in the problem.",
+        4: "Try to optimize your approach - can you solve it more efficiently?"
+      };
+      
+      const hintIndex = aiGeneratedHints.length;
+      const fallbackHint = fallbackHints[hintIndex] || "Consider alternative approaches and edge cases.";
+      
+      setAiGeneratedHints(prev => [...prev, fallbackHint]);
+      toast.error('Failed to generate AI hint, but here\'s a helpful suggestion!');
+    } finally {
+      setIsGeneratingHint(false);
+    }
+  };
+
+  // Enhanced chat message handling
+  const handleSendMessage = async () => {
+    const trimmedInput = chatInput.trim();
+    if (!trimmedInput) return;
+
+    if (trimmedInput.length > 1000) {
+      toast.error('Message is too long (maximum 1000 characters)');
+      return;
+    }
+
+    const userMessage = { role: 'user', content: trimmedInput };
+    setChatMessages(prev => [...prev, userMessage]);
+    setChatInput('');
+    setIsAiTyping(true);
+    setChatInitialized(true);
+
+    try {
+      const response = await axiosInstance.post('/chat/problem-discussion', {
+        problemId: id,
+        message: trimmedInput,
+        problemContext: {
+          title: problem?.title || 'Unknown Problem',
+          description: problem?.description || '',
+          difficulty: problem?.difficulty || 'MEDIUM',
+          tags: Array.isArray(problem?.tags) ? problem.tags : []
+        },
+        chatHistory: chatMessages.slice(-5) // Send last 5 messages for context
+      });
+
+      const responseData = response.data?.data || response.data;
+      const aiResponse = responseData?.response || responseData?.message || 
+                        "I'm here to help with your question!";
+      
+      const aiMessage = { role: 'assistant', content: aiResponse };
+      setChatMessages(prev => [...prev, aiMessage]);
+      
+    } catch (error) {
+      console.error('Chat failed:', error);
+      
+      // Provide intelligent fallback based on user message
+      let fallbackResponse = "I'm sorry, I encountered an error. ";
+      
+      if (trimmedInput.toLowerCase().includes('hint')) {
+        fallbackResponse += "Try the hints section for helpful suggestions!";
+      } else if (trimmedInput.toLowerCase().includes('debug')) {
+        fallbackResponse += "Check your code for syntax errors and edge cases.";
+      } else if (trimmedInput.toLowerCase().includes('algorithm')) {
+        fallbackResponse += "Consider which algorithms and data structures fit this problem.";
+      } else {
+        fallbackResponse += "Please try rephrasing your question.";
+      }
+      
+      const errorMessage = { role: 'assistant', content: fallbackResponse };
+      setChatMessages(prev => [...prev, errorMessage]);
+      
+      toast.error('Chat temporarily unavailable, but I provided a helpful response!');
+    } finally {
+      setIsAiTyping(false);
+    }
+  };
+
+  // Enhanced code execution with better error handling
+  const handleCodeExecution = async () => {
+    if (!code.trim()) {
+      toast.error('Please write some code before executing');
+      return;
+    }
+
+    if (!testCases || testCases.length === 0) {
+      toast.error('No test cases available for this problem');
+      return;
+    }
+
+    try {
+      console.log('Starting code execution...');
+      const languageId = getLanguageId(selectedLanguage);
+      
+      if (!languageId) {
+        toast.error(`Language ${selectedLanguage} is not supported`);
+        return;
+      }
+      
+      // Validate code length
+      if (code.length > 50000) {
+        toast.error('Code is too long (maximum 50,000 characters)');
+        return;
+      }
+      
+      console.log('Using code for execution:', code.substring(0, 200) + '...');
+      
+      // Format test cases correctly for the API
+      const formattedTestCases = testCases.map(tc => tc.input);
+      const expectedOutputs = testCases.map(tc => tc.output);
+      
+      console.log('Formatted data:', {
+        codeLength: code.length,
+        languageId,
+        testCaseCount: formattedTestCases.length,
+        problemId: id
+      });
+      
+      const result = await executeCode(
+        code,
+        languageId, 
+        formattedTestCases,
+        expectedOutputs,
+        id
+      );
+      
+      if (result) {
+        setHasExecutedOrSubmitted(true);
+        setShowTestCases(true);
+        console.log('Code execution completed successfully');
+        toast.success('Code executed successfully!');
+      } else {
+        toast.error('Code execution failed');
+      }
+    } catch (error) {
+      console.error("Execution failed:", error);
+      const errorMessage = error.response?.data?.message || error.message || 'Code execution failed';
+      toast.error(errorMessage);
+    }
+  };
+
   const toggleFullScreen = () => {
     setIsFullScreen(!isFullScreen);
   };
 
-  // Handle escape key to exit full screen
   useEffect(() => {
     const handleEscapeKey = (event) => {
       if (event.key === 'Escape' && isFullScreen) {
@@ -158,6 +430,10 @@ const ProblemPage = () => {
       document.removeEventListener('keydown', handleEscapeKey);
     };
   }, [isFullScreen]);
+
+  const toggleTestCases = () => {
+    setShowTestCases(!showTestCases);
+  };
 
   const getDifficultyColor = (difficulty) => {
     switch (difficulty?.toUpperCase()) {
@@ -172,22 +448,6 @@ const ProblemPage = () => {
     }
   };
 
-  const calculateSuccessRate = () => {
-    if (problemStats && problemStats.totalSubmissions > 0) {
-      return `${problemStats.successRate}%`;
-    }
-    
-    // Fallback calculation if stats not available
-    if (!submissionCount || submissionCount === 0) {
-      return "0%";
-    }
-    
-    // Estimate based on difficulty
-    const estimatedRate = problem.difficulty === 'EASY' ? 75 : 
-                         problem.difficulty === 'MEDIUM' ? 45 : 25;
-    return `${estimatedRate}%`;
-  };
-
   const renderTabContent = () => {
     switch (activeTab) {
       case "description":
@@ -200,7 +460,7 @@ const ProblemPage = () => {
                   <Target className="w-6 h-6" />
                   <div>
                     <p className="text-sm opacity-90">Difficulty</p>
-                    <p className="text-lg font-bold">{problem.difficulty}</p>
+                    <p className="text-lg font-bold">{problem?.difficulty || 'N/A'}</p>
                   </div>
                 </div>
               </div>
@@ -233,12 +493,12 @@ const ProblemPage = () => {
                 Problem Description
               </h3>
               <div className="prose dark:prose-invert max-w-none">
-                <p className="text-gray-700 dark:text-gray-300 leading-relaxed text-lg">{problem.description}</p>
+                <p className="text-gray-700 dark:text-gray-300 leading-relaxed text-lg">{problem?.description || 'No description available'}</p>
               </div>
             </div>
 
             {/* Examples */}
-            {problem.examples && (
+            {problem?.examples && (
               <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg border-2 border-gray-200 dark:border-gray-700">
                 <h3 className="text-xl font-bold mb-6 text-gray-900 dark:text-white flex items-center gap-2">
                   <Code2 className="w-5 h-5 text-red-600 dark:text-red-400" />
@@ -253,7 +513,7 @@ const ProblemPage = () => {
                             Input:
                           </label>
                           <div className="bg-black text-green-400 p-4 rounded-lg font-mono text-sm overflow-x-auto border border-gray-600">
-                            {example.input}
+                            {example.input || 'No input'}
                           </div>
                         </div>
                         <div>
@@ -261,7 +521,7 @@ const ProblemPage = () => {
                             Output:
                           </label>
                           <div className="bg-black text-yellow-400 p-4 rounded-lg font-mono text-sm overflow-x-auto border border-gray-600">
-                            {example.output}
+                            {example.output || 'No output'}
                           </div>
                         </div>
                         {example.explanation && (
@@ -282,7 +542,7 @@ const ProblemPage = () => {
             )}
 
             {/* Constraints */}
-            {problem.constraints && (
+            {problem?.constraints && (
               <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg border-2 border-gray-200 dark:border-gray-700">
                 <h3 className="text-xl font-bold mb-4 text-gray-900 dark:text-white flex items-center gap-2">
                   <Zap className="w-5 h-5 text-yellow-600 dark:text-yellow-400" />
@@ -297,7 +557,7 @@ const ProblemPage = () => {
             )}
 
             {/* Tags */}
-            {problem.tags && problem.tags.length > 0 && (
+            {problem?.tags && problem.tags.length > 0 && (
               <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg border-2 border-gray-200 dark:border-gray-700">
                 <h3 className="text-xl font-bold mb-4 text-gray-900 dark:text-white flex items-center gap-2">
                   <BookOpen className="w-5 h-5 text-purple-600 dark:text-purple-400" />
@@ -315,886 +575,550 @@ const ProblemPage = () => {
                 </div>
               </div>
             )}
-          </div>
-        );
-      case "submissions":
-        return <SubmissionList submissions={submissions} isLoading={isSubmissionsLoading} />;
-      case "discussion":
-        // Initialize chat when discussion tab is opened
-        if (activeTab === "discussion" && !chatInitialized) {
-          initializeChat();
-        }
-        
-        return (
-          <div className="h-full flex flex-col bg-red-500 rounded-xl shadow-2xl border-2 border-gray-800 overflow-hidden">
-            {/* Chat Messages Area */}
-            <div className="flex-1 overflow-y-auto p-6 space-y-6 min-h-0 bg-black">
-              {/* Reset Button - Floating */}
-              <div className="flex justify-end mb-4">
-                <button
-                  onClick={clearChat}
-                  className="btn btn-circle bg-red-600 border-2 border-red-700 text-white hover:bg-red-700 hover:border-red-800 transition-all duration-300 shadow-lg"
-                  title="Clear chat"
-                >
-                  <RefreshCw className="w-5 h-5" />
-                </button>
-              </div>
 
-              {chatMessages.length === 0 ? (
-                <div className="flex flex-col items-center justify-center h-full text-center">
-                  <div className="w-24 h-24 bg-blue-600 rounded-full flex items-center justify-center mb-6 shadow-2xl">
-                    <Sparkles className="w-12 h-12 text-white" />
-                  </div>
-                  <h4 className="text-2xl font-bold text-white mb-4 tracking-wide">
-                    🤖 AI Discussion Assistant
-                  </h4>
-                  <p className="text-gray-300 max-w-md text-lg leading-relaxed">
-                    Start a conversation about <span className="text-red-400 font-semibold">"{problem?.title}"</span>. 
-                    I can help with understanding the problem, discussing approaches, explaining algorithms, and more!
-                  </p>
-                  <div className="mt-8 grid grid-cols-2 gap-4 max-w-lg">
-                    <div className="bg-blue-800 p-4 rounded-lg border border-blue-600">
-                      <h5 className="text-blue-300 font-semibold mb-2">💡 What I can help with:</h5>
-                      <ul className="text-gray-300 text-sm space-y-1">
-                        <li>• Problem explanation</li>
-                        <li>• Algorithm approaches</li>
-                        <li>• Code optimization</li>
-                      </ul>
-                    </div>
-                    <div className="bg-red-800 p-4 rounded-lg border border-red-600">
-                      <h5 className="text-red-300 font-semibold mb-2">🎯 Smart Features:</h5>
-                      <ul className="text-gray-300 text-sm space-y-1">
-                        <li>• Progressive hints</li>
-                        <li>• Context awareness</li>
-                        <li>• Educational guidance</li>
-                      </ul>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <>
-                  {chatMessages.map((message, index) => (
-                    <div
-                      key={message.id}
-                      className={`flex gap-4 ${
-                        message.type === 'user' ? 'justify-end' : 'justify-start'
-                      } animate-fadeIn`}
-                      style={{ animationDelay: `${index * 0.1}s` }}
-                    >
-                      {message.type === 'ai' && (
-                        <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0 shadow-lg border-2 border-blue-700">
-                          <Bot className="w-6 h-6 text-white" />
-                        </div>
-                      )}
-                      
-                      <div
-                        className={`max-w-[75%] p-5 rounded-2xl shadow-xl border-2 ${
-                          message.type === 'user'
-                            ? 'bg-blue-600 text-white border-blue-700'
-                            : 'bg-gray-800 text-white border-gray-700'
-                        }`}
-                      >
-                        <div className="prose prose-sm max-w-none">
-                          <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed text-inherit">
-                            {message.content}
-                          </pre>
-                        </div>
-                        <div className={`text-xs mt-3 flex items-center gap-2 ${
-                          message.type === 'user' 
-                            ? 'text-blue-100' 
-                            : 'text-gray-400'
-                        }`}>
-                          <span>
-                            {message.timestamp.toLocaleTimeString([], { 
-                              hour: '2-digit', 
-                              minute: '2-digit' 
-                            })}
-                          </span>
-                          {message.type === 'user' && (
-                            <div className="w-1 h-1 bg-blue-200 rounded-full"></div>
-                          )}
-                        </div>
-                      </div>
-
-                      {message.type === 'user' && (
-                        <div className="w-10 h-10 bg-red-600 rounded-full flex items-center justify-center flex-shrink-0 shadow-lg border-2 border-red-700">
-                          <User className="w-6 h-6 text-white" />
-                        </div>
-                      )}
-                    </div>
-                  ))}
-
-                  {/* AI Typing Indicator */}
-                  {isAiTyping && (
-                    <div className="flex gap-4 justify-start animate-pulse">
-                      <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0 shadow-lg border-2 border-blue-700">
-                        <Bot className="w-6 h-6 text-white" />
-                      </div>
-                      <div className="bg-gray-800 p-5 rounded-2xl shadow-xl border-2 border-gray-700">
-                        <div className="flex items-center gap-3">
-                          <Loader2 className="w-5 h-5 animate-spin text-red-400" />
-                          <span className="text-gray-300 text-sm font-medium">
-                            AI is analyzing your question...
-                          </span>
-                          <div className="flex space-x-1">
-                            <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0s' }}></div>
-                            <div className="w-2 h-2 bg-red-500 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                            <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </>
-              )}
-            </div>
-
-            {/* Chat Input Section */}
-            <div className="border-t-2 border-gray-800 p-6 bg-gray-900">
-              <div className="flex gap-4 mb-4">
-                <div className="flex-1 relative">
-                  <textarea
-                    className="w-full textarea bg-gray-800 border-2 border-gray-700 text-white placeholder-gray-400 focus:border-red-500 focus:ring-2 focus:ring-red-500/20 transition-all duration-300 resize-none shadow-lg"
-                    placeholder="Ask me about the problem, approach, hints, or anything else..."
-                    value={chatInput}
-                    onChange={(e) => setChatInput(e.target.value)}
-                    onKeyPress={handleKeyPress}
-                    rows={3}
-                    disabled={isAiTyping}
-                    style={{ fontSize: '16px' }}
-                  />
-                  <div className="absolute bottom-3 right-3 text-xs text-gray-500">
-                    Press Enter to send, Shift+Enter for new line
-                  </div>
-                </div>
-                <button
-                  onClick={sendChatMessage}
-                  disabled={!chatInput.trim() || isAiTyping}
-                  className="btn btn-circle btn-lg bg-red-600 hover:bg-red-700 border-2 border-red-700 text-white disabled:bg-gray-600 disabled:border-gray-600 disabled:text-gray-400 transition-all duration-300 shadow-xl transform hover:scale-110"
-                >
-                  {isAiTyping ? (
-                    <Loader2 className="w-6 h-6 animate-spin" />
-                  ) : (
-                    <Send className="w-6 h-6" />
-                  )}
-                </button>
-              </div>
-              
-              {/* Quick Action Buttons */}
-              {!isAiTyping && chatMessages.length <= 1 && (
-                <div className="flex flex-wrap gap-3">
+            {/* Test Cases Preview - Only show if user has executed or submitted */}
+            {hasExecutedOrSubmitted && (
+              <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg border-2 border-gray-200 dark:border-gray-700">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                    <Target className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                    Test Cases
+                    <span className="text-sm font-normal text-gray-500 dark:text-gray-400 ml-2">
+                      (Unlocked after execution)
+                    </span>
+                  </h3>
                   <button
-                    onClick={() => setChatInput("Can you explain this problem in simple terms?")}
-                    className="btn btn-sm bg-blue-600 text-white border-blue-700 hover:bg-blue-700 hover:border-blue-800 transition-all duration-300 shadow-lg transform hover:scale-105"
+                    onClick={toggleTestCases}
+                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors duration-200 flex items-center gap-2"
                   >
-                    <MessageCircle className="w-4 h-4 mr-2" />
-                    Explain Problem
-                  </button>
-                  <button
-                    onClick={() => setChatInput("What approach should I use to solve this?")}
-                    className="btn btn-sm bg-red-600 text-white border-red-700 hover:bg-red-700 hover:border-red-800 transition-all duration-300 shadow-lg transform hover:scale-105"
-                  >
-                    <Sparkles className="w-4 h-4 mr-2" />
-                    Suggest Approach
-                  </button>
-                  <button
-                    onClick={() => setChatInput("What are the time and space complexity considerations?")}
-                    className="btn btn-sm bg-purple-600 text-white border-purple-700 hover:bg-purple-700 hover:border-purple-800 transition-all duration-300 shadow-lg transform hover:scale-105"
-                  >
-                    <Code2 className="w-4 h-4 mr-2" />
-                    Complexity Analysis
+                    {showTestCases ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    {showTestCases ? 'Hide' : 'Show'} Test Cases
                   </button>
                 </div>
-              )}
-
-              {/* Status Indicator */}
-              {getCurrentCodeStatus() === "Your Last Submission" && (
-                <div className="mt-4 text-sm text-blue-300 flex items-center gap-3 bg-blue-900 p-3 rounded-lg border border-blue-600">
-                  <Code2 className="w-5 h-5 text-blue-400" />
-                  <span>💡 Tip: I can help you understand your previous submission or explore alternative approaches!</span>
-                </div>
-              )}
-            </div>
-          </div>
-        );
-      case "hints":
-        return (
-          <div className="h-full bg-gray-900 rounded-xl shadow-2xl border-2 border-gray-800 overflow-hidden flex flex-col">
-            {/* Hints Header */}
-            <div className="bg-black p-2 border-b-2 border-red-700">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center shadow-lg">
-                    <Lightbulb className="w-7 h-7 text-white" />
-                  </div>
-                  <div>
-                    <h3 className="text-xl font-bold text-white">Problem Hints</h3>
-                    <p className="text-red-100 text-sm">Get progressive hints to solve "{problem?.title}"</p>
-                  </div>
-                </div>
-                <button
-                  onClick={generateHintWithAI}
-                  disabled={isGeneratingHint}
-                  className="btn bg-blue-700  text-white border-2 border-blue-600 hover:border-red-600 hover:bg-blue-600 shadow-lg transition-all duration-300 transform hover:scale-105"
-                >
-                  {isGeneratingHint ? (
-                    <>
-                      <Loader2 className="w-5 h-5 animate-spin mr-2" />
-                      Generating...
-                    </>
-                  ) : (
-                    <>
-                      <Sparkles className="w-5 h-5 mr-2" />
-                      Get AI Hint
-                    </>
-                  )}
-                </button>
-              </div>
-            </div>
-
-            {/* Hints Content */}
-            <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-black">
-              {/* Static Hints from Problem */}
-              {problem?.hints && (
-                <div className="bg-gray-800 border-2 border-red-600 p-6 rounded-xl shadow-md">
-                  <h4 className="text-lg font-bold text-red-400 mb-4 flex items-center gap-2">
-                    <FileText className="w-5 h-5" />
-                    Problem Author Hints
-                  </h4>
-                  <div className="bg-gray-900 p-4 rounded-lg border border-blue-600">
-                    <pre className="text-white leading-relaxed whitespace-pre-wrap font-sans">
-                      {problem.hints}
-                    </pre>
-                  </div>
-                </div>
-              )}
-
-              {/* AI Generated Hints */}
-              {aiGeneratedHints.length > 0 && (
-                <div className="space-y-4">
-                  <h4 className="text-lg font-bold text-white flex items-center gap-2">
-                    <Bot className="w-5 h-5 text-blue-400" />
-                    AI Generated Hints
-                  </h4>
-                  {aiGeneratedHints.map((hint, index) => (
-                    <div
-                      key={index}
-                      className="bg-gray-800 border-2 border-blue-600 p-5 rounded-xl shadow-md animate-fadeIn"
-                      style={{ animationDelay: `${index * 0.2}s` }}
-                    >
-                      <div className="flex items-start gap-4">
-                        <div className="w-8 h-8 bg-red-600 rounded-full flex items-center justify-center flex-shrink-0 shadow-lg">
-                          <span className="text-white font-bold text-sm">{index + 1}</span>
-                        </div>
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-2">
-                            <span className="text-sm font-semibold text-blue-400">
-                              Hint Level {hint.level || index + 1}
-                            </span>
-                            <div className="flex">
-                              {Array.from({ length: hint.level || index + 1 }).map((_, i) => (
-                                <div key={i} className="w-2 h-2 bg-red-500 rounded-full mx-0.5"></div>
-                              ))}
+                
+                {showTestCases && (
+                  <div className="bg-gray-50 dark:bg-gray-900/50 p-4 rounded-lg">
+                    <p className="text-gray-600 dark:text-gray-400 text-sm mb-3">
+                      Preview of test cases (showing first 3 out of {testCases.length} total)
+                    </p>
+                    <div className="space-y-3">
+                      {testCases.slice(0, 3).map((testCase, index) => (
+                        <div key={index} className="bg-white dark:bg-gray-800 p-3 rounded border">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                            <div>
+                              <span className="font-semibold text-blue-600 dark:text-blue-400">Input:</span>
+                              <div className="font-mono bg-gray-100 dark:bg-gray-700 p-2 rounded mt-1">
+                                {testCase.input || 'No input'}
+                              </div>
+                            </div>
+                            <div>
+                              <span className="font-semibold text-red-600 dark:text-red-400">Expected:</span>
+                              <div className="font-mono bg-gray-100 dark:bg-gray-700 p-2 rounded mt-1">
+                                {testCase.output || 'No output'}
+                              </div>
                             </div>
                           </div>
-                          <p className="text-white leading-relaxed">
-                            {hint.hint || hint}
-                          </p>
                         </div>
-                      </div>
+                      ))}
+                      {testCases.length > 3 && (
+                        <div className="text-center text-gray-500 dark:text-gray-400 text-sm">
+                          ... and {testCases.length - 3} more test cases
+                        </div>
+                      )}
                     </div>
-                  ))}
-                </div>
-              )}
-
-              {/* No Hints Available */}
-              {!problem?.hints && aiGeneratedHints.length === 0 && (
-                <div className="flex flex-col items-center justify-center h-full text-center py-12">
-                  <div className="w-20 h-20 bg-red-600 rounded-full flex items-center justify-center mb-6 shadow-xl">
-                    <Lightbulb className="w-10 h-10 text-white" />
                   </div>
-                  <h4 className="text-xl font-bold text-white mb-3">
-                    No Hints Available Yet
+                )}
+              </div>
+            )}
+
+            {/* Test Cases Locked Message - Show when user hasn't executed yet */}
+            {!hasExecutedOrSubmitted && (
+              <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg border-2 border-gray-200 dark:border-gray-700">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                    <Target className="w-5 h-5 text-gray-400" />
+                    Test Cases
+                  </h3>
+                  <span className="px-3 py-1 bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded-full text-sm">
+                    🔒 Locked
+                  </span>
+                </div>
+                
+                <div className="bg-gray-50 dark:bg-gray-900/50 p-6 rounded-lg text-center">
+                  <div className="w-16 h-16 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Target className="w-8 h-8 text-gray-400" />
+                  </div>
+                  <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                    Test Cases are Hidden
                   </h4>
-                  <p className="text-gray-300 max-w-md leading-relaxed mb-6">
-                    This problem doesn't have predefined hints, but our AI can generate personalized hints to help you solve it step by step.
+                  <p className="text-gray-600 dark:text-gray-400 mb-4">
+                    Execute your code or make a submission to unlock and view the test cases.
                   </p>
                   <button
-                    onClick={generateHintWithAI}
-                    disabled={isGeneratingHint}
-                    className="btn bg-blue-600 hover:bg-blue-700 text-white border-2 border-red-600 hover:border-red-500 shadow-xl transform hover:scale-105 transition-all duration-300"
+                    onClick={handleCodeExecution}
+                    disabled={isExecuting || !code.trim()}
+                    className="px-6 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white rounded-lg transition-colors duration-200 flex items-center gap-2 mx-auto"
                   >
-                    {isGeneratingHint ? (
+                    {isExecuting ? (
                       <>
-                        <Loader2 className="w-5 h-5 animate-spin mr-2" />
-                        Generating Your First Hint...
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Executing...
                       </>
                     ) : (
                       <>
-                        <Sparkles className="w-5 h-5 mr-2" />
-                        Generate First Hint
+                        <Play className="w-4 h-4" />
+                        Run Code to Unlock
                       </>
                     )}
                   </button>
                 </div>
-              )}
-
-              {/* Hint Generation Tips */}
-              {(problem?.hints || aiGeneratedHints.length > 0) && (
-                <div className="bg-gray-800 border-2 border-gray-600 p-5 rounded-xl">
-                  <h5 className="text-sm font-bold text-white mb-3 flex items-center gap-2">
-                    <MessageCircle className="w-4 h-4 text-blue-400" />
-                    💡 Hint Tips
-                  </h5>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-300">
-                    <div className="bg-red-800/20 p-3 rounded-lg border border-red-600/30">
-                      <p className="text-red-300">• Hints are progressive - start with the first one</p>
-                      <p className="text-red-300">• Try to solve with minimal hints for better learning</p>
-                    </div>
-                    <div className="bg-blue-800/20 p-3 rounded-lg border border-blue-600/30">
-                      <p className="text-blue-300">• AI hints are personalized to this specific problem</p>
-                      <p className="text-blue-300">• Each hint builds upon the previous ones</p>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
+              </div>
+            )}
           </div>
         );
-      default:
-        return null;
-    }
-  };
 
-  const handleRunCode = (e) => {
-    e.preventDefault();
-    try {
-      if (!problem || !problem.testcases) {
-        console.error("Problem data not available");
-        return;
-      }
-      
-      const language_id = getLanguageId(selectedLanguage);
-      const stdin = problem.testcases.map((tc) => tc.input);
-      const expected_outputs = problem.testcases.map((tc) => tc.output);
-      executeCode(code, language_id, stdin, expected_outputs, id);
-    } catch (error) {
-      console.log("Error executing code", error);
-    }
-  };
-
-  const getCurrentCodeStatus = () => {
-    if (userLastSubmission && userLastSubmission.language === selectedLanguage) {
-      return "Your Last Submission";
-    }
-    return "Starter Code";
-  };
-
-  // Full Screen Editor Modal
-  const FullScreenEditor = () => (
-    <div className="fixed inset-0 z-50 bg-black bg-opacity-95 flex flex-col">
-      {/* Full Screen Header */}
-      <div className="bg-gray-900 p-4 flex justify-between items-center border-b-2 border-gray-700">
-        <div className="flex items-center gap-4">
-          <h2 className="text-white text-lg font-bold flex items-center gap-2">
-            <Terminal className="w-5 h-5 text-blue-400" />
-            {problem.title} - Full Screen Editor
-          </h2>
-          <span className={`text-xs px-3 py-1 rounded-full font-medium ${
-            getCurrentCodeStatus() === "Your Last Submission"
-              ? 'bg-blue-600 text-white'
-              : 'bg-gray-600 text-gray-200'
-          }`}>
-            {getCurrentCodeStatus()}
-          </span>
-        </div>
-        <div className="flex items-center gap-3">
-          <select 
-            className="select select-bordered bg-gray-800 border-gray-600 text-white font-bold text-sm"
-            value={selectedLanguage}
-            onChange={handleLanguageChange}
-          >
-            {Object.keys(problem.codeSnippets || {}).map((lang) => (
-              <option key={lang} value={lang}>
-                {lang.charAt(0).toUpperCase() + lang.slice(1).toLowerCase()}
-              </option>
-            ))}
-          </select>
-          <button
-            className="btn btn-outline btn-sm gap-2 text-white border-gray-600 hover:bg-blue-600 hover:border-blue-600 transition-all duration-200"
-            onClick={resetToStarterCode}
-            title="Reset to starter code"
-          >
-            <RotateCcw className="w-4 h-4" />
-          </button>
-          <button
-            className="btn btn-ghost btn-sm text-white hover:bg-red-600 transition-all duration-200"
-            onClick={toggleFullScreen}
-            title="Exit full screen"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-      </div>
-
-      {/* Full Screen Editor */}
-      <div className="flex-1">
-        <Editor
-          height="100%"
-          language={selectedLanguage.toLowerCase()}
-          theme="vs-dark"
-          value={code}
-          onChange={(value) => setCode(value || '')}
-          options={{
-            minimap: { enabled: true },
-            fontSize: 16,
-            lineNumbers: 'on',
-            roundedSelection: false,
-            scrollBeyondLastLine: false,
-            automaticLayout: true,
-            wordWrap: 'on',
-          }}
-        />
-      </div>
-
-      {/* Full Screen Footer */}
-      <div className="bg-gray-900 p-4 border-t-2 border-gray-700">
-        <div className="flex justify-between items-center">
-          <button 
-            className={`btn bg-blue-600 hover:bg-blue-700 text-white gap-2 border-0 shadow-lg transition-all duration-200 ${isExecuting ? "loading" : ""}`}
-            onClick={handleRunCode}
-            disabled={isExecuting}
-          >
-            {!isExecuting && <Play className="w-4 h-4" />}
-            Run Code
-          </button>
-          <button 
-            className="btn bg-red-600 hover:bg-red-700 text-white gap-2 border-0 shadow-lg transition-all duration-200"
-          >
-            Submit Solution
-          </button>
-        </div>
-        
-        {getCurrentCodeStatus() === "Your Last Submission" && (
-          <div className="mt-3 text-sm text-blue-400 flex items-center gap-2 bg-blue-900/20 p-2 rounded-lg border border-blue-500/30">
-            <Code2 className="w-4 h-4" />
-            Loaded your previous submission. You can continue editing from here.
-          </div>
-        )}
-      </div>
-    </div>
-  );
-
-  const initializeChat = () => {
-    if (!chatInitialized && problem) {
-      const welcomeMessage = {
-        id: Date.now(),
-        type: 'ai',
-        content: `Hello! I'm your AI assistant for "${problem.title}". I can help you understand the problem, discuss approaches, explain concepts, and guide you through the solution. What would you like to know?`,
-        timestamp: new Date()
-      };
-      setChatMessages([welcomeMessage]);
-      setChatInitialized(true);
-    }
-  };
-
-  // Update the sendChatMessage function
-  const sendChatMessage = async () => {
-    if (!chatInput.trim() || isAiTyping) return;
-
-    const userMessage = {
-      id: Date.now(),
-      type: 'user',
-      content: chatInput.trim(),
-      timestamp: new Date()
-    };
-
-    setChatMessages(prev => [...prev, userMessage]);
-    const currentInput = chatInput.trim();
-    setChatInput("");
-    setIsAiTyping(true);
-
-    try {
-      console.log('Sending chat message to API...');
-      
-      const response = await axiosInstance.post('/chat/problem-discussion', {
-        problemId: id,
-        problemTitle: problem.title,
-        problemDescription: problem.description,
-        difficulty: problem.difficulty,
-        tags: problem.tags || [],
-        userMessage: currentInput,
-        chatHistory: chatMessages.slice(-10) // Send last 10 messages for context
-      });
-
-      console.log('Chat API response:', response.data);
-
-      const aiMessage = {
-        id: Date.now() + 1,
-        type: 'ai',
-        content: response.data.data.response,
-        timestamp: new Date()
-      };
-
-      setChatMessages(prev => [...prev, aiMessage]);
-    } catch (error) {
-      console.error('Error sending chat message:', error);
-      
-      // More detailed error logging
-      if (error.response) {
-        console.error('Response status:', error.response.status);
-        console.error('Response data:', error.response.data);
-      }
-      
-      const errorMessage = {
-        id: Date.now() + 1,
-        type: 'ai',
-        content: "I'm sorry, I'm having trouble responding right now. Please try again in a moment.",
-        timestamp: new Date()
-      };
-      setChatMessages(prev => [...prev, errorMessage]);
-    } finally {
-      setIsAiTyping(false);
-    }
-  };
-
-  const clearChat = () => {
-    setChatMessages([]);
-    setChatInitialized(false);
-    setTimeout(() => initializeChat(), 100);
-  };
-
-  const handleKeyPress = (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      sendChatMessage();
-    }
-  };
-
-  const generateHintWithAI = async () => {
-    if (!problem || isGeneratingHint) return;
-
-    setIsGeneratingHint(true);
-    try {
-      console.log('Generating AI hint for problem:', problem.title);
-      
-      const response = await axiosInstance.post('/chat/generate-hint', {
-        problemId: id,
-        problemTitle: problem.title,
-        problemDescription: problem.description,
-        difficulty: problem.difficulty,
-        tags: problem.tags || [],
-        constraints: problem.constraints || '',
-        existingHints: aiGeneratedHints.length, // Tell AI how many hints already generated
-        currentHintLevel: aiGeneratedHints.length + 1
-      });
-
-      const newHints = response.data.data.hints;
-      
-      if (newHints && Array.isArray(newHints) && newHints.length > 0) {
-        // Add new hints to existing ones
-        setAiGeneratedHints(prev => [...prev, ...newHints]);
-        
-        // Show success message
-        const hintCount = newHints.length;
-        console.log(`Generated ${hintCount} new hint(s)`);
-      } else if (typeof newHints === 'string') {
-        // Handle single hint as string
-        const newHint = {
-          hint: newHints,
-          level: aiGeneratedHints.length + 1
-        };
-        setAiGeneratedHints(prev => [...prev, newHint]);
-      } else {
-        console.warn('No valid hints generated');
-      }
-    } catch (error) {
-      console.error('Error generating AI hint:', error);
-      
-      // Provide fallback hint based on difficulty and existing hints
-      const fallbackHint = generateFallbackHint(problem.difficulty, aiGeneratedHints.length + 1);
-      setAiGeneratedHints(prev => [...prev, fallbackHint]);
-    } finally {
-      setIsGeneratingHint(false);
-    }
-  };
-
-  // Helper function for fallback hints
-  const generateFallbackHint = (difficulty, level) => {
-    const hintTemplates = {
-      EASY: [
-        "Start by carefully reading the problem statement and understanding what is being asked.",
-        "Think about the simplest approach first - sometimes the most straightforward solution works best.",
-        "Consider what data structures might be helpful for storing and accessing your data.",
-        "Look at the examples and try to identify patterns in the input and output."
-      ],
-      MEDIUM: [
-        "Break down the problem into smaller, manageable subproblems.",
-        "Consider the time and space complexity requirements - can you optimize your approach?",
-        "Think about which algorithms or data structures are commonly used for this type of problem.",
-        "Look for edge cases and make sure your solution handles them correctly."
-      ],
-      HARD: [
-        "This problem likely requires an advanced algorithm or optimization technique.",
-        "Consider dynamic programming, graph algorithms, or advanced data structures.",
-        "Think about the mathematical properties of the problem - is there a pattern or formula?",
-        "Break the problem down and solve smaller versions first to build intuition."
-      ]
-    };
-
-    const hints = hintTemplates[difficulty] || hintTemplates.EASY;
-    const hintIndex = Math.min(level - 1, hints.length - 1);
-    
-    return {
-      hint: hints[hintIndex] || "Try approaching this problem step by step and don't hesitate to look up relevant algorithms.",
-      level: level
-    };
-  };
-
-  return (
-    <div className="min-h-screen w-full bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white transition-all duration-300">
-      {/* Full Screen Editor Modal */}
-      {isFullScreen && <FullScreenEditor />}
-
-      {isProblemLoading || !problem ? (
-        <div className="flex justify-center items-center h-screen">
-          <div className="flex flex-col items-center space-y-4">
-            <div className="loading loading-spinner loading-lg text-blue-600"></div>
-            <p className="text-lg font-medium text-gray-600 dark:text-gray-400">Loading problem...</p>
-          </div>
-        </div>
-      ) : (
-        <>
-          {/* Enhanced Navigation */}
-          <nav className="bg-white dark:bg-gray-900 shadow-xl px-6 py-4 border-b-2 border-gray-200 dark:border-gray-700">
-            <div className="max-w-7xl mx-auto flex justify-between items-center">
-              <div className="flex items-center space-x-4">
-                <Link to={'/'} className="flex items-center gap-2 text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors">
-                  <Home className="w-6 h-6" />
-                  <ChevronRight className="w-4 h-4" />
-                </Link>
-                <div>
-                  <h1 className="text-2xl font-bold text-red-600 dark:text-red-400">
-                    {problem.title}
-                  </h1>
-                  <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400 mt-1">
-                    <div className="flex items-center gap-1">
-                      <Clock className="w-4 h-4" />
-                      <span>Updated {new Date(problem.createdAt).toLocaleDateString()}</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Users className="w-4 h-4" />
-                      <span>{submissionCount} Submissions</span>
-                    </div>
-                    <span className={`px-2 py-1 rounded-md text-xs font-medium ${getDifficultyColor(problem.difficulty)}`}>
-                      {problem.difficulty}
-                    </span>
-                  </div>
-                </div>
-              </div>
-              <div className="flex items-center gap-4">
-                <button 
-                  className={`btn btn-circle border-0 transition-all duration-200 ${
-                    isBookmarked 
-                      ? 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-900/50' 
-                      : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
-                  }`}
-                  onClick={() => setIsBookmarked(!isBookmarked)}
+      case "hints":
+        return (
+          <div className="space-y-6">
+            {/* AI Hint Generator */}
+            <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg border-2 border-gray-200 dark:border-gray-700">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                  <Lightbulb className="w-5 h-5 text-yellow-600 dark:text-yellow-400" />
+                  AI-Powered Hints
+                </h3>
+                <button
+                  onClick={generateHint}
+                  disabled={isGeneratingHint}
+                  className="px-4 py-2 bg-yellow-600 hover:bg-yellow-700 disabled:bg-gray-400 text-white rounded-lg transition-colors duration-200 flex items-center gap-2"
                 >
-                  <Bookmark className="w-5 h-5" />
-                </button>
-                <button className="btn btn-circle bg-gray-100 dark:bg-gray-800 border-0 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 transition-all duration-200">
-                  <Share2 className="w-5 h-5" />
-                </button>
-                <select 
-                  className="select select-bordered bg-blue-600 border-blue-600 text-white font-bold min-w-32 shadow-lg"
-                  value={selectedLanguage}
-                  onChange={handleLanguageChange}
-                >
-                  {Object.keys(problem.codeSnippets || {}).map((lang) => (
-                    <option key={lang} value={lang} className="bg-blue-600 text-white">
-                      {lang.charAt(0).toUpperCase() + lang.slice(1).toLowerCase()}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-          </nav>
-
-          <div className="max-w-7xl mx-auto p-6">
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-8 h-[calc(100vh-120px)]">
-              {/* Left: Description / Tabs - Updated with flex layout */}
-              <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border-2 border-gray-200 dark:border-gray-700 overflow-hidden flex flex-col h-full">
-                <div className="border-b-2 border-gray-200 dark:border-gray-700 flex-shrink-0">
-                  <div className="flex">
-                    {["description", "submissions", "discussion", "hints"].map(tab => (
-                      <button
-                        key={tab}
-                        className={`flex-1 px-6 py-2 text-sm font-semibold transition-all duration-200 ${
-                          activeTab === tab 
-                            ? "bg-blue-600 text-white border-b-2 border-blue-700" 
-                            : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-800"
-                        }`}
-                        onClick={() => setActiveTab(tab)}
-                      >
-                        <div className="flex items-center justify-center gap-2">
-                          {tab === "description" && <FileText className="w-4 h-4" />}
-                          {tab === "submissions" && <Code2 className="w-4 h-4" />}
-                          {tab === "discussion" && <MessageSquare className="w-4 h-4" />}
-                          {tab === "hints" && <Lightbulb className="w-4 h-4" />}
-                          {tab.charAt(0).toUpperCase() + tab.slice(1)}
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                {/* Updated content area to fill remaining space */}
-                <div className="flex-1 overflow-y-auto p-6">
-                  {renderTabContent()}
-                </div>
-              </div>
-
-              {/* Right: Code Editor - Updated with matching height */}
-              <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border-2 border-gray-200 dark:border-gray-700 overflow-hidden flex flex-col h-full">
-                <div className="bg-gray-800 px-6 py-4 border-b-2 border-gray-700 flex-shrink-0">
-                  <div className="flex justify-between items-center">
-                    <div className="flex items-center gap-3">
-                      <Terminal className="w-5 h-5 text-blue-400" />
-                      <span className="font-semibold text-white">Code Editor</span>
-                      {isLoadingUserCode && (
-                        <span className="loading loading-spinner loading-xs text-blue-400"></span>
-                      )}
-                    </div>
-                    
-                    <div className="flex items-center gap-3">
-                      <span className={`text-xs px-3 py-1 rounded-full font-medium ${
-                        getCurrentCodeStatus() === "Your Last Submission"
-                          ? 'bg-blue-600 text-white'
-                          : 'bg-gray-600 text-gray-200'
-                      }`}>
-                        {getCurrentCodeStatus()}
-                      </span>
-                      
-                      <button
-                        className="btn btn-xs bg-blue-600 hover:bg-blue-700 text-white border-0 gap-1 shadow-lg transition-all duration-200"
-                        onClick={resetToStarterCode}
-                        title="Reset to starter code"
-                      >
-                        <RotateCcw className="w-3 h-3" />
-                      </button>
-
-                      <button
-                        className="btn btn-xs bg-red-600 hover:bg-red-700 text-white border-0 gap-1 shadow-lg transition-all duration-200"
-                        onClick={toggleFullScreen}
-                        title="Open in full screen"
-                      >
-                        <Maximize2 className="w-3 h-3" />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Updated editor to fill remaining space */}
-                <div className="flex-1 w-full">
-                  <Editor
-                    height="100%"
-                    language={selectedLanguage.toLowerCase()}
-                    theme="vs-dark"
-                    value={code}
-                    onChange={(value) => setCode(value || '')}
-                    options={{
-                      minimap: { enabled: false },
-                      fontSize: 16,
-                      lineNumbers: 'on',
-                      roundedSelection: false,
-                      scrollBeyondLastLine: false,
-                      automaticLayout: true,
-                      padding: { top: 16, bottom: 16 },
-                    }}
-                  />
-                </div>
-
-                <div className="bg-gray-50 dark:bg-gray-800 p-6 border-t-2 border-gray-200 dark:border-gray-700 flex-shrink-0">
-                  <div className="flex justify-between items-center">
-                    <button 
-                      className={`btn bg-blue-600 hover:bg-blue-700 text-white gap-2 border-0 shadow-lg transition-all duration-200 ${isExecuting ? "loading" : ""}`}
-                      onClick={handleRunCode}
-                      disabled={isExecuting}
-                    >
-                      {!isExecuting && <Play className="w-4 h-4" />}
-                      Run Code
-                    </button>
-                    <button 
-                      className="btn bg-red-600 hover:bg-red-700 text-white gap-2 border-0 shadow-lg transition-all duration-200"
-                    >
-                      Submit Solution
-                    </button>
-                  </div>
-                  
-                  {getCurrentCodeStatus() === "Your Last Submission" && (
-                    <div className="mt-3 text-sm text-blue-600 dark:text-blue-400 flex items-center gap-2 bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg border border-blue-500/30">
-                      <Code2 className="w-4 h-4" />
-                      Loaded your previous submission. You can continue editing from here.
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Enhanced Submission Results / Test Cases */}
-            <div className="mt-4 bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border-2 border-gray-200 dark:border-gray-700 overflow-hidden">
-              <div className="bg-blue-600 px-6 py-4">
-                <h3 className="text-xl font-bold text-white flex items-center gap-2">
-                  {submission ? (
+                  {isGeneratingHint ? (
                     <>
-                      <Award className="w-6 h-6 text-yellow-400" />
-                      Submission Results
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Generating...
                     </>
                   ) : (
                     <>
-                      <Target className="w-6 h-6 text-white" />
-                      Test Cases
+                      <Sparkles className="w-4 h-4" />
+                      Get Hint
                     </>
                   )}
+                </button>
+              </div>
+
+              {aiGeneratedHints.length > 0 ? (
+                <div className="space-y-4">
+                  {aiGeneratedHints.map((hint, index) => (
+                    <div key={index} className="bg-yellow-50 dark:bg-yellow-900/20 p-4 rounded-lg border-l-4 border-yellow-500">
+                      <div className="flex items-start gap-3">
+                        <div className="w-8 h-8 bg-yellow-600 rounded-full flex items-center justify-center flex-shrink-0">
+                          <span className="text-white font-bold text-sm">{index + 1}</span>
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-gray-700 dark:text-gray-300 leading-relaxed">{hint}</p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <Lightbulb className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                  <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                    Need a Hint?
+                  </h4>
+                  <p className="text-gray-600 dark:text-gray-400">
+                    Click "Get Hint" to receive AI-powered suggestions for solving this problem.
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* User-Generated Hints Section */}
+            {problem?.hints && (
+              <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg border-2 border-gray-200 dark:border-gray-700">
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2 mb-4">
+                  <User className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                  Problem Hints
+                </h3>
+                <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border-l-4 border-blue-500">
+                  <pre className="text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap font-sans">
+                    {problem.hints}
+                  </pre>
+                </div>
+              </div>
+            )}
+          </div>
+        );
+
+      case "submissions":
+        return (
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                <FileText className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                Your Submissions
+              </h3>
+              <span className="px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-full text-sm font-medium">
+                Total: {submissions?.length || 0}
+              </span>
+            </div>
+
+            {isSubmissionsLoading ? (
+              <div className="flex justify-center items-center py-12">
+                <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
+                <span className="ml-3 text-lg font-medium">Loading submissions...</span>
+              </div>
+            ) : (
+              <SubmissionList submissions={submissions} />
+            )}
+          </div>
+        );
+
+      case "chat":
+        return (
+          <div className="space-y-6">
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border-2 border-gray-200 dark:border-gray-700 h-96 flex flex-col">
+              <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                  <MessageCircle className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                  AI Assistant
                 </h3>
               </div>
               
-              <div className="p-6">
-                {submission ? (
-                  <SubmissionResults submission={submission}/>
-                ) : (
-                  <div className="overflow-x-auto">
-                    <table className="table w-full">
-                      <thead>
-                        <tr className="bg-blue-50 dark:bg-blue-900/20">
-                          <th className="text-blue-600 dark:text-blue-400 font-bold text-lg">Input</th>
-                          <th className="text-red-600 dark:text-red-400 font-bold text-lg">Expected Output</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {testCases.map((testCase, index) => (
-                          <tr key={index} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
-                            <td className="font-mono text-sm bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
-                              <pre className="whitespace-pre-wrap text-gray-700 dark:text-gray-300">
-                                {testCase.input}
-                              </pre>
-                            </td>
-                            <td className="font-mono text-sm bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
-                              <pre className="whitespace-pre-wrap text-gray-700 dark:text-gray-300">
-                                {testCase.output}
-                              </pre>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+              <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                {chatMessages.length === 0 && !chatInitialized && (
+                  <div className="text-center py-8">
+                    <Bot className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                    <p className="text-gray-600 dark:text-gray-400">
+                      Ask me anything about this problem! I can help with algorithms, approaches, and debugging.
+                    </p>
+                  </div>
+                )}
+
+                {chatMessages.map((message, index) => (
+                  <div key={index} className={`flex gap-3 ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                    <div className={`flex gap-3 max-w-[80%] ${message.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
+                        message.role === 'user' ? 'bg-blue-600' : 'bg-gray-600'
+                      }`}>
+                        {message.role === 'user' ? (
+                          <User className="w-4 h-4 text-white" />
+                        ) : (
+                          <Bot className="w-4 h-4 text-white" />
+                        )}
+                      </div>
+                      <div className={`p-3 rounded-lg ${
+                        message.role === 'user' 
+                          ? 'bg-blue-600 text-white' 
+                          : 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white'
+                      }`}>
+                        <p className="text-sm leading-relaxed">{message.content}</p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+
+                {isAiTyping && (
+                  <div className="flex gap-3">
+                    <div className="w-8 h-8 bg-gray-600 rounded-full flex items-center justify-center flex-shrink-0">
+                      <Bot className="w-4 h-4 text-white" />
+                    </div>
+                    <div className="bg-gray-100 dark:bg-gray-700 p-3 rounded-lg">
+                      <div className="flex gap-1">
+                        <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
+                        <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                        <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }}></div>
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>
+
+              <div className="p-4 border-t border-gray-200 dark:border-gray-700">
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={chatInput}
+                    onChange={(e) => setChatInput(e.target.value)}
+                    onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+                    placeholder="Ask about this problem..."
+                    className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                  />
+                  <button
+                    onClick={handleSendMessage}
+                    disabled={!chatInput.trim() || isAiTyping}
+                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white rounded-lg transition-colors duration-200"
+                  >
+                    <Send className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
-        </>
-      )}
+        );
+
+      default:
+        return <div>Tab content not found</div>;
+    }
+  };
+
+  if (isProblemLoading) {
+    return (
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="w-12 h-12 text-blue-500 animate-spin mx-auto mb-4" />
+          <p className="text-lg font-medium text-gray-600 dark:text-gray-400">Loading problem...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!problem) {
+    return (
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+            <X className="w-8 h-8 text-red-600 dark:text-red-400" />
+          </div>
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Problem Not Found</h2>
+          <p className="text-gray-600 dark:text-gray-400 mb-6">The problem you're looking for doesn't exist or has been removed.</p>
+          <Link 
+            to="/problems" 
+            className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+          >
+            <Home className="w-4 h-4" />
+            Back to Problems
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
+      {/* Header */}
+      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-sm">
+        <div className="container mx-auto px-4 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <Link 
+                to="/problems" 
+                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+              >
+                <Home className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+              </Link>
+              <ChevronRight className="w-4 h-4 text-gray-400" />
+              <div>
+                <h1 className="text-xl font-bold text-gray-900 dark:text-white">{problem.title}</h1>
+                <div className="flex items-center gap-2 mt-1">
+                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${getDifficultyColor(problem.difficulty)}`}>
+                    {problem.difficulty}
+                  </span>
+                  <div className="flex items-center gap-1 text-sm text-gray-500 dark:text-gray-400">
+                    <Clock className="w-4 h-4" />
+                    <span>ID: {problem.id}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setIsBookmarked(!isBookmarked)}
+                className={`p-2 rounded-lg transition-colors ${
+                  isBookmarked 
+                    ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-600 dark:text-yellow-400' 
+                    : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400'
+                }`}
+              >
+                <Bookmark className={`w-5 h-5 ${isBookmarked ? 'fill-current' : ''}`} />
+              </button>
+              <button className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors text-gray-600 dark:text-gray-400">
+                <Share2 className="w-5 h-5" />
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <div className="container mx-auto px-4 py-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-[calc(100vh-180px)]">
+          {/* Left Panel - Problem Description */}
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+            {/* Tabs */}
+            <div className="flex border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50">
+              {[
+                { id: 'description', label: 'Description', icon: FileText },
+                { id: 'hints', label: 'Hints', icon: Lightbulb },
+                { id: 'submissions', label: 'Submissions', icon: FileText },
+                { id: 'chat', label: 'AI Chat', icon: MessageSquare }
+              ].map(tab => {
+                const IconComponent = tab.icon;
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id)}
+                    className={`flex items-center gap-2 px-4 py-3 text-sm font-medium transition-colors ${
+                      activeTab === tab.id
+                        ? 'text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400 bg-white dark:bg-gray-800'
+                        : 'text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400'
+                    }`}
+                  >
+                    <IconComponent className="w-4 h-4" />
+                    {tab.label}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Tab Content */}
+            <div className="p-6 overflow-y-auto h-[calc(100%-60px)]">
+              {renderTabContent()}
+            </div>
+          </div>
+
+          {/* Right Panel - Code Editor */}
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+            {/* Editor Header */}
+            <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50">
+              <div className="flex items-center gap-4">
+                <select
+                  value={selectedLanguage}
+                  onChange={handleLanguageChange}
+                  className="px-3 py-1.5 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm font-medium text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                >
+                  {problem && Object.keys(problem.codeSnippets || {}).map(lang => (
+                    <option key={lang} value={lang}>{lang}</option>
+                  ))}
+                </select>
+                
+                <button
+                  onClick={resetToStarterCode}
+                  className="flex items-center gap-2 px-3 py-1.5 text-sm bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg transition-colors"
+                >
+                  <RotateCcw className="w-4 h-4" />
+                  Reset
+                </button>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={toggleFullScreen}
+                  className="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors text-gray-600 dark:text-gray-400"
+                >
+                  {isFullScreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+
+            {/* Code Editor */}
+            <div className={`${isFullScreen ? 'fixed inset-0 z-50 bg-white dark:bg-gray-900' : 'h-[calc(100%-120px)]'}`}>
+              {isFullScreen && (
+                <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
+                  <h2 className="text-lg font-semibold text-gray-900 dark:text-white">{problem.title}</h2>
+                  <button
+                    onClick={toggleFullScreen}
+                    className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+                  >
+                    <X className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+                  </button>
+                </div>
+              )}
+              
+              <div className={isFullScreen ? 'h-[calc(100%-120px)]' : 'h-full'}>
+                {isLoadingUserCode ? (
+                  <div className="h-full flex items-center justify-center">
+                    <div className="text-center">
+                      <Loader2 className="w-8 h-8 text-blue-500 animate-spin mx-auto mb-2" />
+                      <p className="text-sm text-gray-600 dark:text-gray-400">Loading your code...</p>
+                    </div>
+                  </div>
+                ) : (
+                  <Editor
+                    height="100%"
+                    language={selectedLanguage.toLowerCase()}
+                    value={code}
+                    onChange={(value) => setCode(value || "")}
+                    theme="vs-dark"
+                    options={{
+                      fontSize: 14,
+                      minimap: { enabled: false },
+                      scrollBeyondLastLine: false,
+                      wordWrap: 'on',
+                      lineNumbers: 'on',
+                      glyphMargin: false,
+                      folding: false,
+                      lineDecorationsWidth: 0,
+                      lineNumbersMinChars: 3,
+                      renderLineHighlight: 'line',
+                      scrollbar: {
+                        vertical: 'auto',
+                        horizontal: 'auto'
+                      },
+                      automaticLayout: true,
+                      tabSize: 2,
+                      insertSpaces: true,
+                      detectIndentation: false,
+                      renderWhitespace: 'none',
+                      bracketPairColorization: { enabled: true },
+                      guides: {
+                        bracketPairs: true,
+                        indentation: true
+                      }
+                    }}
+                  />
+                )}
+              </div>
+
+              {/* Bottom Action Bar */}
+              <div className={`flex items-center justify-between p-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50 ${isFullScreen ? '' : ''}`}>
+                <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                  <Terminal className="w-4 h-4" />
+                  <span>Ready to code</span>
+                </div>
+                
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={handleCodeExecution}
+                    disabled={isExecuting || !code.trim()}
+                    className="flex items-center gap-2 px-6 py-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white rounded-lg font-medium transition-colors shadow-lg"
+                  >
+                    {isExecuting ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Running...
+                      </>
+                    ) : (
+                      <>
+                        <Play className="w-4 h-4" />
+                        Run Code
+                      </>
+                    )}
+                  </button>
+                  
+                  <button
+                    onClick={handleCodeExecution}
+                    disabled={!code.trim()}
+                    className="flex items-center gap-2 px-6 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white rounded-lg font-medium transition-colors shadow-lg"
+                  >
+                    <Send className="w-4 h-4" />
+                    Submit
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Execution Results */}
+        {submission && (
+          <div className="mt-6">
+            <SubmissionResults submission={submission} />
+          </div>
+        )}
+      </div>
     </div>
   );
 };

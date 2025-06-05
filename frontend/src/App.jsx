@@ -19,30 +19,41 @@ const App = () => {
   const { authUser, checkAuth, isCheckingAuth } = useAuthStore();
 
   useEffect(() => {
-    // Log before checking auth
     console.log("Checking authentication...");
     checkAuth();
   }, [checkAuth]);
 
   useEffect(() => {
-    // Log auth state changes
     console.log("Auth state changed:", {
       authUser,
+      isAuthenticated: !!authUser,
       isAdmin: authUser?.role === "ADMIN",
     });
   }, [authUser]);
 
   if (isCheckingAuth) {
     return (
-      <div className="flex items-center justify-center h-screen w-full">
-        <Loader className="size-10 animate-spin" />
+      <div className="flex items-center justify-center h-screen w-full bg-slate-50 dark:bg-slate-900">
+        <div className="text-center">
+          <Loader className="size-10 animate-spin mx-auto mb-4 text-blue-600" />
+          <p className="text-gray-600 dark:text-gray-400">Loading...</p>
+        </div>
       </div>
     );
   }
 
   return (
     <div className="w-full">
-      <Toaster position="top-center" />
+      <Toaster
+        position="top-center"
+        toastOptions={{
+          duration: 4000,
+          style: {
+            background: "#363636",
+            color: "#fff",
+          },
+        }}
+      />
       <Routes>
         {/* Public and User Routes */}
         <Route path="/" element={<Layout />}>
@@ -51,31 +62,30 @@ const App = () => {
           {/* Protected User Routes */}
           <Route
             path="/problems"
-            element={authUser ? <Problems /> : <Navigate to="/login" />}
+            element={authUser ? <Problems /> : <Navigate to="/login" replace />}
           />
           <Route
             path="/problem/:id"
-            element={authUser ? <ProblemPage /> : <Navigate to={"/login"} />}
+            element={authUser ? <ProblemPage /> : <Navigate to="/login" replace />}
           />
           <Route
             path="/sheets"
-            element={authUser ? <Sheets /> : <Navigate to="/login" />}
+            element={authUser ? <Sheets /> : <Navigate to="/login" replace />}
           />
-
           <Route
             path="/profile"
-            element={authUser ? <Profile /> : <Navigate to="/login" />}
+            element={authUser ? <Profile /> : <Navigate to="/login" replace />}
           />
         </Route>
 
         {/* Auth Routes */}
         <Route
           path="/login"
-          element={!authUser ? <LoginPage /> : <Navigate to="/" />}
+          element={!authUser ? <LoginPage /> : <Navigate to="/" replace />}
         />
         <Route
           path="/signup"
-          element={!authUser ? <SignUpPage /> : <Navigate to="/" />}
+          element={!authUser ? <SignUpPage /> : <Navigate to="/" replace />}
         />
 
         {/* Admin Routes */}
@@ -83,6 +93,9 @@ const App = () => {
           <Route path="add-problem" element={<CreateProblemForm />} />
           <Route path="edit-problem/:id" element={<CreateProblemForm />} />
         </Route>
+
+        {/* Catch all route */}
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </div>
   );

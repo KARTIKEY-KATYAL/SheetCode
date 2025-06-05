@@ -1,24 +1,26 @@
-import { Router } from 'express';
-import { 
-  problemDiscussion, 
+import express from 'express';
+import {
+  problemDiscussion,
   generateHints,
   analyzeSubmission,
-  analyzeProfile
+  analyzeProfile, // Add this import
 } from '../controllers/chat.controller.js';
 import { isLoggedIn } from '../middleware/auth.middleware.js';
 
-const router = Router();
+const router = express.Router();
 
-// Problem discussion chat
+// Add logging middleware
+router.use((req, res, next) => {
+  console.log(`Chat route accessed: ${req.method} ${req.path}`);
+  next();
+});
+
+// Chat routes
 router.post('/problem-discussion', isLoggedIn, problemDiscussion);
-
-// Generate AI hint
 router.post('/generate-hints', isLoggedIn, generateHints);
-
-// Analyze submission with AI
 router.post('/analyze-submission', isLoggedIn, analyzeSubmission);
 
-// Analyze user profile
+// Add the missing profile analysis route
 router.post('/analyze-profile', isLoggedIn, analyzeProfile);
 
 export default router;

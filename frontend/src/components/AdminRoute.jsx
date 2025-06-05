@@ -2,6 +2,10 @@ import { Navigate, Outlet } from "react-router-dom";
 import { useAuthStore } from "../store/useAuthStore";
 import { Loader } from "lucide-react";
 import Header from "./Header";
+import { useEffect } from "react";
+import { useParams } from "react-router-dom";
+import { useProblemStore } from "../store/useProblemStore";
+
 const AdminRoute = () => {
   const { authUser, isCheckingAuth } = useAuthStore();
 
@@ -37,4 +41,23 @@ const AdminRoute = () => {
   );
 };
 
+// Ensure edit problem route loads the correct data
+
+const EditProblemWrapper = ({ children }) => {
+  const { id } = useParams();
+  const { getProblemById } = useProblemStore();
+
+  useEffect(() => {
+    if (id) {
+      // Route: GET /problems/get-problems/:id
+      getProblemById(id).catch((error) => {
+        console.error("Error loading problem for edit:", error);
+      });
+    }
+  }, [id, getProblemById]);
+
+  return children;
+};
+
 export default AdminRoute;
+export { EditProblemWrapper };

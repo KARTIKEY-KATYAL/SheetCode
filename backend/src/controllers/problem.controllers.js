@@ -120,16 +120,26 @@ export const createProblem = asyncHandler(async (req, res) => {
 });
 
 export const getallProblems = asyncHandler(async (req, res) => {
-  const problems = await db.problem.findMany();
-
-  if (!problems) {
-    return res.status(404).json({
-      error: 'No problems Found',
+  try {
+    const problems = await db.problem.findMany({
+      orderBy: {
+        createdAt: 'desc', // Order by creation date, newest first
+      },
     });
+
+    console.log(`Found ${problems.length} problems`);
+
+    if (!problems || problems.length === 0) {
+      return res.status(200).json(new ApiResponse(200, [], 'No problems found'));
+    }
+
+    return res
+      .status(200)
+      .json(new ApiResponse(200, problems, 'Problems fetched successfully'));
+  } catch (error) {
+    console.error('Error fetching problems:', error);
+    return res.status(500).json(new ApiError(500, 'Error while fetching problems'));
   }
-  res
-    .status(200)
-    .json(new ApiResponse(200, problems, 'Problems fetched Successsfully'));
 });
 
 export const getallProblembyId = asyncHandler(async (req, res) => {
@@ -380,19 +390,66 @@ export const getSolvedProblems = asyncHandler(async (req, res) => {
 export const getProblemStats = asyncHandler(async (req, res) => {
   const { problemId } = req.params;
 
+  // Enhanced validation
+  if (!problemId || typeof problemId !== 'string') {
+    throw new ApiError(400, 'Valid problem ID is required');
+  }
+
   try {
-    // Fetch problem statistics from the database
-    const problemStats = await db.problemStats.findUnique({
-      where: { problemId },
+    // Get basic problem info with existence check
+    const problem = await db.problem.findUnique({
+      where: { id: problemId },
+      select: { id: true, title: true, difficulty: true },
     });
 
-    if (!problemStats) {
-      return res.status(404).json(new ApiError(404, 'Problem stats not found'));
+    if (!problem) {
+      return res.status(404).json(new ApiError(404, 'Problem not found'));
     }
 
-    res.status(200).json(new ApiResponse(200, problemStats, 'Problem stats fetched successfully'));
+    // Get submission statistics in parallel
+    const [totalSubmissions, acceptedSubmissions, uniqueSolvers] = await Promise.all([
+      db.submission.count({
+        where: { problemId },
+      }),
+      db.submission.count({
+        where: {
+          problemId,
+          status: { in: ['ACCEPTED', 'Accepted'] }, // Handle both formats
+        },
+      }),
+      db.problemSolved.count({
+        where: { problemId },
+      })
+    ]);
+
+    // Calculate acceptance rate with proper handling
+    const acceptanceRate = totalSubmissions > 0
+      ? parseFloat(((acceptedSubmissions / totalSubmissions) * 100).toFixed(1))
+      : 0;
+
+    const stats = {
+      problemId,
+      title: problem.title,
+      difficulty: problem.difficulty,
+      totalSubmissions,
+      acceptedSubmissions,
+      acceptanceRate,
+      successRate: acceptanceRate, // Alias for frontend compatibility
+      uniqueSolvers,
+      // Additional helpful stats
+      rejectedSubmissions: totalSubmissions - acceptedSubmissions,
+      averageAttempts: uniqueSolvers > 0 ? (totalSubmissions / uniqueSolvers).toFixed(1) : 0
+    };
+
+    console.log('Problem stats calculated:', stats);
+
+    res.status(200).json(
+      new ApiResponse(200, stats, 'Problem stats fetched successfully'),
+    );
   } catch (error) {
     console.error('Error fetching problem stats:', error);
-    return res.status(500).json(new ApiError(500, 'Error while fetching problem stats'));
+    return res.status(500).json(
+      new ApiError(500, 'Error while fetching problem stats')
+    );
   }
 });

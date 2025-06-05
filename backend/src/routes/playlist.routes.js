@@ -12,25 +12,13 @@ import {
 
 const router = express.Router();
 
-// Get all playlists for the logged-in user
+// Playlist routes
 router.get('/', isLoggedIn, getAllListDetails);
-
-// Get a single playlist by ID
 router.get('/:playlistId', isLoggedIn, getPlayListDetails);
-
-// Create a new playlist
 router.post('/', isLoggedIn, createPlaylist);
-
-// Update a new playlist
-router.patch('/', isLoggedIn, updatePlaylist);
-
-// Add problems to a playlist
+router.patch('/:playlistId', isLoggedIn, updatePlaylist);
 router.post('/:playlistId/problems', isLoggedIn, addProblemToPlaylist);
-
-// Remove problems from a playlist
 router.delete('/:playlistId/problems', isLoggedIn, removeProblemFromPlaylist);
-
-// Delete a playlist
 router.delete('/:playlistId', isLoggedIn, deletePlaylist);
 
 export default router;
